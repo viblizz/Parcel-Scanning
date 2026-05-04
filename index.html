@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Parcel Scanner Pro</title>
+    
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
+        .header-bar h1 { margin: 0; color: #333; font-size: 24px; }
+        .cloud-status { font-size: 14px; padding: 5px 10px; background: #d4edda; color: #155724; border-radius: 20px; font-weight: bold; border: 1px solid #c3e6cb; }
+        .flow-controls { display: flex; gap: 10px; align-items: center; background: #eef; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-top: 10px;}
+        select { padding: 8px; font-size: 16px; border-radius: 4px; font-weight: bold; }
+        
+        .section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
+        textarea, input[type="text"], input[type="date"] { width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { padding: 10px 15px; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
+        .btn-primary { background: #0056b3; }
+        .btn-primary:hover { background: #004494; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-danger-sm { background: #dc3545; }
+        .btn-danger-sm:hover { background: #c82333; }
+
+        #download-btn { background: #28a745; margin-right: 10px; }
+        #download-btn:hover { background: #218838; }
+        #download-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        #finish-btn { background: #17a2b8; }
+        #finish-btn:hover { background: #138496; }
+
+        /* NEW BACKUP BUTTON STYLES */
+        #backup-btn { background: #ff9800; margin-right: 10px;}
+        #backup-btn:hover { background: #e68a00; }
+        #view-backup-btn { background: #6f42c1; }
+        #view-backup-btn:hover { background: #59339d; }
+
+        .filter-box { background: #e2e3e5; padding: 10px; border-radius: 4px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: #383d41;}
+        .filter-left { display: flex; align-items: center; gap: 10px; }
+        .filter-box input[type="date"] { width: auto; margin-top: 0; padding: 5px; }
+        .filter-box input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+
+        .scanner-wrapper { position: relative; }
+        #active-flow-label { position: absolute; top: 15px; right: 15px; background: #0056b3; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;}
+        #scanner-input { font-size: 24px; background-color: #eef; transition: background-color 0.3s; padding-right: 150px; flex: 1; margin-top: 0;}
+        #scanner-input:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        #log { margin-top: 10px; padding: 10px; font-weight: bold; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; text-align: center; }
+        .modal-content { background: white; margin: 10% auto; padding: 40px; width: 90%; max-width: 450px; border-radius: 8px; }
+        .modal-id-text { font-size: 24px; font-weight: bold; margin: 20px 0; }
+
+        .red-modal { border: 8px solid #dc3545; box-shadow: 0 0 20px red; }
+        .red-modal h2 { color: #dc3545; font-size: 32px; margin-top: 0; }
+        .btn-danger { background: #dc3545; font-size: 20px; padding: 15px 30px; border-radius: 8px; width: 100%; color: white; border: none; font-weight: bold; cursor: pointer;}
+        
+        .yellow-modal { border: 8px solid #ffc107; box-shadow: 0 0 20px #ffc107; }
+        .yellow-modal h2 { color: #d39e00; font-size: 32px; margin-top: 0; }
+        .btn-warning { background: #ffc107; font-size: 20px; padding: 15px 30px; border-radius: 8px; width: 100%; color: #333; border: none; font-weight: bold; cursor: pointer;}
+
+        .blue-modal { border: 8px solid #17a2b8; box-shadow: 0 0 20px #17a2b8; text-align: left; }
+        .blue-modal h2 { color: #17a2b8; font-size: 28px; margin-top: 0; text-align: center; }
+        
+        #camera-modal { z-index: 900; } 
+        #reader { width: 100%; min-height: 300px; background: #000; border-radius: 8px; overflow: hidden; }
+        
+        .button-group { display: flex; gap: 10px; margin-top: 10px; }
+
+        #flash-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(40, 167, 69, 0.7); 
+            z-index: 9999; 
+            pointer-events: none; 
+            transition: opacity 0.2s;
+        }
+    </style>
+</head>
+<body>
+
+<div id="flash-overlay"></div>
+
+<!-- BACKUP MODAL -->
+<div id="backup-modal" class="modal-overlay">
+    <div class="modal-content" style="border: 8px solid #ff9800; box-shadow: 0 0 20px #ff9800; max-width: 600px; text-align: left;">
+        <h2 style="color: #e68a00; margin-top: 0; text-align: center;">💾 Saved Backups (Last 20)</h2>
+        <p style="text-align: center; color: #666; font-size: 14px;">These backups are stored safely in your browser. Even if you clear your flow, you can restore data from here.</p>
+        <div id="backup-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #ccc; padding: 10px; border-radius: 4px; background: #fafafa;"></div>
+        <button class="btn-secondary" style="width: 100%; font-size: 18px;" onclick="document.getElementById('backup-modal').style.display='none'">Close</button>
+    </div>
+</div>
+
+<div id="duplicate-modal" class="modal-overlay">
+    <div class="modal-content red-modal">
+        <h2>⚠️ DUPLICATE!</h2>
+        <p>This parcel has already been scanned in this flow:</p>
+        <div id="duplicate-id-text" class="modal-id-text"></div>
+        <button class="btn-danger" onclick="resumeScanning('duplicate-modal')">OK - CONTINUE</button>
+    </div>
+</div>
+
+<div id="invalid-modal" class="modal-overlay">
+    <div class="modal-content yellow-modal">
+        <h2>⚠️ INVALID BARCODE!</h2>
+        <p>This parcel is NOT in the expected list for this flow:</p>
+        <div id="invalid-id-text" class="modal-id-text"></div>
+        <button class="btn-warning" onclick="resumeScanning('invalid-modal')">OK - CONTINUE</button>
+    </div>
+</div>
+
+<div id="missing-modal" class="modal-overlay">
+    <div class="modal-content blue-modal">
+        <h2>📋 Missing Parcels</h2>
+        <p style="text-align: center; font-size: 18px;">Remaining to scan for <strong id="missing-flow-name"></strong>:</p>
+        <textarea id="missing-list-text" rows="10" readonly style="width: 100%; font-family: monospace; font-size: 16px; background-color: #f8f9fa; cursor: default;"></textarea>
+        <div class="button-group" style="margin-top: 20px;">
+            <button class="btn-primary" style="flex: 2; font-size: 18px;" onclick="downloadMissingExcel()">⬇️ Download Missing List</button>
+            <button class="btn-secondary" style="flex: 1; font-size: 18px;" onclick="resumeScanning('missing-modal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<div id="camera-modal" class="modal-overlay">
+    <div class="modal-content" style="border: 8px solid #333; padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin: 0; color: #333;">📷 Live Camera Scanner</h2>
+            <button class="btn-danger-sm" onclick="stopCamera()">✖ Close Camera</button>
+        </div>
+        <p style="color: #666; margin-top: 0;">Point your camera at a barcode.</p>
+        <div id="reader"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="header-bar">
+        <h1>☁️ Cloud Scanner Pro</h1>
+        <div class="cloud-status" id="cloud-status">Connecting to Firebase...</div>
+    </div>
+    
+    <div class="flow-controls">
+        <span>Current Flow:</span>
+        <select id="flow-selector" onchange="switchFlow()"></select>
+        <button class="btn-primary" onclick="createNewFlow()">➕ New Flow</button>
+        <button class="btn-danger-sm" onclick="deleteCurrentFlow()" title="Delete Flow">🗑️</button>
+    </div>
+
+    <div class="section">
+        <h3>1. Input Expected Tracking IDs</h3>
+        <p style="margin-top: 0; color: #666; font-size: 14px;">Adding IDs to: <strong id="adding-target-text"></strong></p>
+        
+        <div class="filter-box">
+            <div class="filter-left">
+                <input type="checkbox" id="use-date-filter" checked>
+                <label for="use-date-filter">Only load parcels shipping on:</label>
+                <input type="date" id="target-ship-date">
+            </div>
+            <div>
+                <input type="file" id="file-upload" accept=".txt, .csv" style="display: none;" onchange="handleFileUpload(event)">
+                <button class="btn-primary" onclick="document.getElementById('file-upload').click()" style="margin-top: 0;">📁 Upload .txt / .csv</button>
+            </div>
+        </div>
+
+        <textarea id="expected-ids" rows="5" placeholder="Or paste your Excel columns here...&#10;Order ID     Tracking ID     Date"></textarea>
+        
+        <div class="button-group">
+            <button class="btn-primary" onclick="addExpectedIDsFromPaste()">➕ Add Pasted Data</button>
+            <button class="btn-secondary" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>2. Scan Parcels</h3>
+        <div class="scanner-wrapper" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+            <input type="text" id="scanner-input" placeholder="Scan barcode here..." autofocus>
+            <div id="active-flow-label">Target: DEFAULT</div>
+            <button class="btn-primary" onclick="startCamera()" style="padding: 10px 20px; font-size: 18px; background: #28a745; margin-top: 0;">📷 Mobile Camera</button>
+        </div>
+        <div id="log" style="display: none;"></div>
+    </div>
+
+    <div class="section" style="border-bottom: none;">
+        <h3>3. Scanned Summary (<span id="scanned-count">0</span> / <span id="total-expected">0</span>)</h3>
+        
+        <!-- MODIFIED: Added Backup Controls Here -->
+        <div class="button-group" style="margin-bottom: 10px;">
+            <button id="backup-btn" onclick="createBackup()">💾 Save Backup Snapshot</button>
+            <button id="view-backup-btn" onclick="showBackups()">📂 View Backups</button>
+        </div>
+
+        <div class="button-group">
+            <button id="download-btn" onclick="downloadExcel()" disabled>⬇️ Download Current Scanned List</button>
+            <button id="finish-btn" onclick="checkRemaining()">🏁 Finish & Check Missing</button>
+        </div>
+
+        <table id="history-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Tracking ID</th>
+                    <th>Time Scanned</th>
+                </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA-xmL30L6UtY3Y5kSCizjUDggM2BxRnmY",
+      authDomain: "parcel-scanning-af4d7.firebaseapp.com",
+      databaseURL: "https://parcel-scanning-af4d7-default-rtdb.firebaseio.com",
+      projectId: "parcel-scanning-af4d7",
+      storageBucket: "parcel-scanning-af4d7.firebasestorage.app",
+      messagingSenderId: "433825457659",
+      appId: "1:433825457659:web:add481ad74320372f3175e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let allFlows = {}; 
+    let activeFlowName = "";
+    let expectedList = new Set();
+    let scannedList = new Set();
+    let scanHistory = []; 
+    let currentMissingIds = []; 
+
+    let html5QrCode;
+    let isCameraPaused = false;
+
+    document.getElementById('target-ship-date').value = new Date().toISOString().split('T')[0];
+
+    // --- NEW: BACKUP SYSTEM LOGIC ---
+    window.createBackup = function() {
+        if (scannedList.size === 0) {
+            alert("Warning: You haven't scanned anything yet.");
+        }
+
+        // 1. Download CSV immediately
+        if(scanHistory.length > 0) {
+            downloadExcel(); 
+        }
+
+        // 2. Save snapshot to LocalStorage
+        let backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
+        const snapshot = {
+            id: Date.now(),
+            time: new Date().toLocaleString(),
+            flow: activeFlowName,
+            scannedCount: scannedList.size,
+            scannedData: Array.from(scannedList),
+            history: scanHistory
+        };
+        
+        backups.push(snapshot);
+        // Keep exactly 20 logs
+        if (backups.length > 20) {
+            backups.shift(); 
+        }
+        localStorage.setItem('scannerBackups', JSON.stringify(backups));
+
+        showLog("Backup file downloaded & saved safely to history!", "success");
+    };
+
+    window.showBackups = function() {
+        const backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
+        const listDiv = document.getElementById('backup-list');
+        listDiv.innerHTML = '';
+
+        if (backups.length === 0) {
+            listDiv.innerHTML = '<p style="text-align:center; color:#666;">No backups saved yet.</p>';
+        } else {
+            [...backups].reverse().forEach((b) => {
+                const item = document.createElement('div');
+                item.style.borderBottom = "1px solid #ddd";
+                item.style.padding = "12px 0";
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${b.time}</strong><br>
+                            <span style="font-size: 14px; color: #555;">Flow: ${b.flow}</span><br>
+                            <span style="color: #28a745; font-weight: bold; font-size: 14px;">✓ ${b.scannedCount} items scanned</span>
+                        </div>
+                        <button onclick="restoreBackup(${b.id})" style="background: #17a2b8; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Restore</button>
+                    </div>
+                `;
+                listDiv.appendChild(item);
+            });
+        }
+        document.getElementById('backup-modal').style.display = 'block';
+    };
+
+    window.restoreBackup = function(backupId) {
+        if(confirm("⚠️ This will overwrite your CURRENT active flow's scanned progress with this backup. Do you want to proceed?")) {
+            let backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
+            let target = backups.find(b => b.id === backupId);
+            if (target) {
+                scannedList = new Set(target.scannedData);
+                scanHistory = target.history || [];
+                updateSummaryUI();
+                saveSessionData(); // Push restored data to Firebase
+                document.getElementById('backup-modal').style.display = 'none';
+                showLog("Backup restored successfully!", "success");
+            }
+        }
+    };
+
+    // --- CLOUD SYNC LOGIC ---
+    function saveSessionData() {
+        allFlows[activeFlowName] = {
+            expected: Array.from(expectedList),
+            scanned: Array.from(scannedList),
+            history: scanHistory
+        };
+        const dataToSave = { active: activeFlowName, flows: allFlows };
+        
+        set(ref(db, 'warehouseScannerData'), dataToSave)
+            .catch((error) => { showLog("Cloud Save Error: Check Firebase Rules!", "error"); console.error(error); });
+    }
+
+    function loadSessionData() {
+        const dbRef = ref(db);
+        get(child(dbRef, `warehouseScannerData`)).then((snapshot) => {
+            if (snapshot.exists()) {
+                const parsed = snapshot.val();
+                allFlows = parsed.flows || {};
+                activeFlowName = parsed.active || Object.keys(allFlows)[0];
+            } 
+            
+            if (Object.keys(allFlows).length === 0) {
+                allFlows = { 'Default Flow': { expected: [], scanned: [], history: [] } };
+                activeFlowName = 'Default Flow';
+            }
+            
+            document.getElementById('cloud-status').innerText = "✅ Cloud Connected";
+            refreshFlowDropdown();
+            loadFlowIntoMemory(activeFlowName);
+        }).catch((error) => {
+            document.getElementById('cloud-status').style.background = "#f8d7da";
+            document.getElementById('cloud-status').style.color = "#721c24";
+            document.getElementById('cloud-status').innerText = "❌ Database Locked (Check Rules)";
+        });
+    }
+
+    function flashScreenGreen() {
+        const flash = document.getElementById('flash-overlay');
+        flash.style.opacity = '1';
+        flash.style.display = 'block';
+        
+        setTimeout(() => { flash.style.opacity = '0'; }, 100);
+        setTimeout(() => { flash.style.display = 'none'; }, 300); 
+    }
+
+    // --- CAMERA LOGIC ---
+    window.startCamera = function() {
+        document.getElementById('camera-modal').style.display = 'block';
+        html5QrCode = new Html5Qrcode("reader");
+        const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+        html5QrCode.start({ facingMode: "environment" }, config, onCameraScanSuccess)
+        .catch((err) => {
+            alert("Camera Error: Ensure you are on HTTPS and have granted camera permissions.\n" + err);
+            window.stopCamera();
+        });
+    };
+
+    window.stopCamera = function() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                html5QrCode.clear();
+                document.getElementById('camera-modal').style.display = 'none';
+            }).catch(err => { console.error("Failed to stop camera", err); });
+        } else {
+            document.getElementById('camera-modal').style.display = 'none';
+        }
+    };
+
+    function onCameraScanSuccess(decodedText) {
+        if (isCameraPaused) return; 
+
+        processScannedId(decodedText);
+        
+        isCameraPaused = true;
+        setTimeout(() => {
+            if(document.getElementById('duplicate-modal').style.display !== 'block' && 
+               document.getElementById('invalid-modal').style.display !== 'block') {
+                isCameraPaused = false;
+            }
+        }, 1500);
+    }
+
+    // --- UNIFIED SCANNING LOGIC ---
+    function processScannedId(scannedId) {
+        if (scannedId === '') return; 
+
+        if (scannedList.has(scannedId)) {
+            triggerDuplicateLockout(scannedId);
+            return; 
+        } 
+        else if (expectedList.has(scannedId)) {
+            scannedList.add(scannedId);
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString() + " on " + now.toLocaleDateString();
+            scanHistory.push({ number: scannedList.size, id: scannedId, time: timestamp });
+
+            playSound('success'); 
+            flashScreenGreen(); 
+            
+            showLog(`SUCCESS: ${scannedId} logged.`, "success");
+            updateSummaryUI(); 
+            saveSessionData(); 
+        } 
+        else {
+            triggerInvalidLockout(scannedId);
+            return;
+        }
+    }
+
+    document.getElementById('scanner-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            processScannedId(this.value.trim());
+            this.value = ''; 
+        }
+    });
+
+    // --- STANDARD APP LOGIC ---
+    function refreshFlowDropdown() {
+        const selector = document.getElementById('flow-selector');
+        selector.innerHTML = '';
+        Object.keys(allFlows).forEach(flowName => {
+            const option = document.createElement('option');
+            option.value = flowName; option.text = flowName;
+            if (flowName === activeFlowName) option.selected = true;
+            selector.appendChild(option);
+        });
+    }
+
+    function loadFlowIntoMemory(flowName) {
+        activeFlowName = flowName;
+        const flowData = allFlows[flowName];
+        expectedList = new Set(flowData.expected || []);
+        scannedList = new Set(flowData.scanned || []);
+        scanHistory = flowData.history || [];
+
+        document.getElementById('adding-target-text').innerText = flowName;
+        document.getElementById('active-flow-label').innerText = "Target: " + flowName.toUpperCase();
+        document.getElementById('total-expected').innerText = expectedList.size;
+        
+        updateSummaryUI();
+        document.getElementById('scanner-input').focus();
+    }
+
+    window.createNewFlow = function() {
+        const name = prompt("Enter a name for the new flow:");
+        if (!name || name.trim() === '') return;
+        const cleanName = name.trim();
+        if (allFlows[cleanName]) { alert("A flow with this name already exists!"); return; }
+        
+        saveSessionData(); 
+        allFlows[cleanName] = { expected: [], scanned: [], history: [] }; 
+        refreshFlowDropdown();
+        document.getElementById('flow-selector').value = cleanName;
+        loadFlowIntoMemory(cleanName);
+        saveSessionData(); 
+        showLog(`Switched to flow: ${cleanName}`, "success");
+    };
+
+    window.switchFlow = function() {
+        saveSessionData(); 
+        const newFlow = document.getElementById('flow-selector').value;
+        loadFlowIntoMemory(newFlow);
+    };
+
+    window.deleteCurrentFlow = function() {
+        if (Object.keys(allFlows).length <= 1) { alert("Cannot delete the last remaining flow."); return; }
+        if (confirm(`⚠️ Delete flow "${activeFlowName}" permanently?`)) {
+            delete allFlows[activeFlowName];
+            activeFlowName = Object.keys(allFlows)[0]; 
+            refreshFlowDropdown();
+            loadFlowIntoMemory(activeFlowName);
+            saveSessionData();
+        }
+    };
+
+    function playSound(type) {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            if (type === 'success') {
+                oscillator.type = 'sine'; 
+                oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); 
+                oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                
+                gainNode.gain.setValueAtTime(2.0, audioCtx.currentTime); 
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2); 
+                
+                oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+                oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.2);
+            } else {
+                oscillator.type = 'sawtooth'; 
+                oscillator.frequency.setValueAtTime(type === 'duplicate' ? 200 : 400, audioCtx.currentTime); 
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); 
+                oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+                oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.4); 
+            }
+        } catch(e) {}
+    }
+
+    function triggerDuplicateLockout(id) {
+        isCameraPaused = true; 
+        playSound('duplicate');
+        document.getElementById('scanner-input').disabled = true;
+        document.getElementById('duplicate-id-text').innerText = id;
+        document.getElementById('duplicate-modal').style.display = 'block';
+    }
+
+    function triggerInvalidLockout(id) {
+        isCameraPaused = true; 
+        playSound('invalid');
+        document.getElementById('scanner-input').disabled = true;
+        document.getElementById('invalid-id-text').innerText = id;
+        document.getElementById('invalid-modal').style.display = 'block';
+    }
+
+    window.resumeScanning = function(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+        const scannerInput = document.getElementById('scanner-input');
+        scannerInput.disabled = false;
+        scannerInput.value = '';
+        scannerInput.focus();
+        isCameraPaused = false; 
+    };
+
+    window.checkRemaining = function() {
+        if (expectedList.size === 0) { alert("You haven't loaded an expected list for this flow yet!"); return; }
+        currentMissingIds = [];
+        expectedList.forEach(id => { if (!scannedList.has(id)) { currentMissingIds.push(id); } });
+
+        if (currentMissingIds.length === 0) {
+            playSound('success'); flashScreenGreen();
+            alert(`🎉 CONGRATULATIONS! \nYou have successfully scanned 100% of the parcels for ${activeFlowName}.`);
+        } else {
+            document.getElementById('missing-flow-name').innerText = activeFlowName;
+            document.getElementById('missing-list-text').value = currentMissingIds.join('\n');
+            document.getElementById('missing-modal').style.display = 'block';
+        }
+    };
+
+    window.addExpectedIDsFromPaste = function() {
+        const text = document.getElementById('expected-ids').value;
+        if (text.trim() === '') { showLog("Please paste some IDs into the box first.", "warning"); return; }
+        processRawText(text, "Pasted Data");
+        document.getElementById('expected-ids').value = ''; 
+    };
+
+    window.handleFileUpload = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            processRawText(text, file.name); 
+            event.target.value = ''; 
+        };
+        reader.readAsText(file);
+    };
+
+    function processRawText(text, sourceName) {
+        const lines = text.split('\n');
+        const useDateFilter = document.getElementById('use-date-filter').checked;
+        const targetDate = document.getElementById('target-ship-date').value; 
+        let addedCount = 0; let skippedDueToDate = 0;
+
+        lines.forEach(line => {
+            if (line.trim() === '') return;
+            const columns = line.split(/[,\t]/);
+            let trackingId = ""; let shipDateStr = "";
+
+            if (columns.length >= 3) { trackingId = columns[1].trim(); shipDateStr = columns[2].trim(); } 
+            else if (columns.length === 2) { trackingId = columns[0].trim(); shipDateStr = columns[1].trim(); } 
+            else { trackingId = line.trim(); }
+
+            trackingId = trackingId.replace(/^"|"$/g, ''); shipDateStr = shipDateStr.replace(/^"|"$/g, '');
+            if (trackingId.toLowerCase() === 'tracking-id' || trackingId.toLowerCase() === 'tracking id' || trackingId === '') return;
+
+            if (useDateFilter && shipDateStr) {
+                const parsedDate = shipDateStr.substring(0, 10);
+                if (parsedDate !== targetDate) { skippedDueToDate++; return; }
+            }
+
+            if (trackingId && !expectedList.has(trackingId)) { expectedList.add(trackingId); addedCount++; }
+        });
+        
+        document.getElementById('total-expected').innerText = expectedList.size;
+        let message = `Added ${addedCount} IDs from ${sourceName}.`;
+        if (skippedDueToDate > 0) message += ` (Skipped ${skippedDueToDate} bad dates).`;
+        
+        showLog(message, "success");
+        document.getElementById('scanner-input').focus(); 
+        saveSessionData(); 
+    }
+
+    window.resetCurrentFlow = function() {
+        if (confirm(`⚠️ Are you sure you want to completely wipe the "${activeFlowName}" flow? (Your Backups will NOT be deleted)`)) {
+            expectedList.clear(); scannedList.clear(); scanHistory = [];
+            document.getElementById('total-expected').innerText = "0";
+            document.getElementById('expected-ids').value = '';
+            updateSummaryUI(); saveSessionData(); 
+            showLog(`Flow "${activeFlowName}" has been cleared.`, "warning");
+        }
+    };
+
+    function updateSummaryUI() {
+        document.getElementById('scanned-count').innerText = scannedList.size;
+        document.getElementById('download-btn').disabled = (scanHistory.length === 0);
+        const tbody = document.getElementById('history-body');
+        tbody.innerHTML = ''; 
+        for (let i = scanHistory.length - 1; i >= 0; i--) {
+            const row = `<tr><td>${scanHistory[i].number}</td><td><strong>${scanHistory[i].id}</strong></td><td>${scanHistory[i].time}</td></tr>`;
+            tbody.innerHTML += row;
+        }
+    }
+
+    window.downloadExcel = function() {
+        let csvContent = "Number,Tracking ID,Time Scanned\n";
+        scanHistory.forEach(record => { csvContent += `"${record.number}","${record.id}","${record.time}"\n`; });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        const safeFlowName = activeFlowName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        link.setAttribute("download", `Scanned_Log_${safeFlowName}.csv`); 
+        link.style.display = 'none'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    };
+
+    window.downloadMissingExcel = function() {
+        let csvContent = "Missing Tracking ID\n";
+        currentMissingIds.forEach(id => { csvContent += `"${id}"\n`; });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        const safeFlowName = activeFlowName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        link.setAttribute("download", `MISSING_Parcels_${safeFlowName}.csv`); 
+        link.style.display = 'none'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    };
+
+    function showLog(message, type) {
+        const logBox = document.getElementById('log');
+        logBox.style.display = 'block'; logBox.innerText = message; logBox.className = type; 
+        setTimeout(() => { logBox.style.display = 'none'; }, 4000);
+    }
+
+    window.onload = function() { loadSessionData(); };
+
+</script>
+
+</body>
+</html>
