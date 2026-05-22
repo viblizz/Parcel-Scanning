@@ -35,7 +35,6 @@
         #finish-btn { background: #17a2b8; }
         #finish-btn:hover { background: #138496; }
 
-        /* NEW BACKUP BUTTON STYLES */
         #backup-btn { background: #ff9800; margin-right: 10px;}
         #backup-btn:hover { background: #e68a00; }
         #view-backup-btn { background: #6f42c1; }
@@ -61,7 +60,7 @@
         tr:nth-child(even) { background-color: #f9f9f9; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; text-align: center; }
-        .modal-content { background: white; margin: 10% auto; padding: 40px; width: 90%; max-width: 450px; border-radius: 8px; }
+        .modal-content { background: white; margin: 10% auto; padding: 40px; width: 90%; max-width: 600px; border-radius: 8px; }
         .modal-id-text { font-size: 24px; font-weight: bold; margin: 20px 0; }
 
         .red-modal { border: 8px solid #dc3545; box-shadow: 0 0 20px red; }
@@ -126,7 +125,7 @@
     <div class="modal-content blue-modal">
         <h2>📋 Missing Parcels</h2>
         <p style="text-align: center; font-size: 18px;">Remaining to scan for <strong id="missing-flow-name"></strong>:</p>
-        <textarea id="missing-list-text" rows="10" readonly style="width: 100%; font-family: monospace; font-size: 16px; background-color: #f8f9fa; cursor: default;"></textarea>
+        <textarea id="missing-list-text" rows="10" readonly style="width: 100%; font-family: monospace; font-size: 14px; background-color: #f8f9fa; cursor: text; white-space: pre;"></textarea>
         <div class="button-group" style="margin-top: 20px;">
             <button class="btn-primary" style="flex: 2; font-size: 18px;" onclick="downloadMissingExcel()">⬇️ Download Missing List</button>
             <button class="btn-secondary" style="flex: 1; font-size: 18px;" onclick="resumeScanning('missing-modal')">Close</button>
@@ -212,6 +211,7 @@
             <thead>
                 <tr>
                     <th>#</th>
+                    <th>Order ID</th>
                     <th>Tracking ID</th>
                     <th>Time Scanned</th>
                 </tr>
@@ -240,7 +240,7 @@
 
     let allFlows = {}; 
     let activeFlowName = "";
-    let expectedList = new Set();
+    let expectedMap = new Map(); // Changed from Set to Map to store Tracking ID -> Order ID
     let scannedList = new Set();
     let scanHistory = []; 
     let currentMissingIds = []; 
@@ -250,18 +250,14 @@
 
     document.getElementById('target-ship-date').value = new Date().toISOString().split('T')[0];
 
-    // --- NEW: BACKUP SYSTEM LOGIC ---
+    // --- BACKUP SYSTEM LOGIC ---
     window.createBackup = function() {
         if (scannedList.size === 0) {
             alert("Warning: You haven't scanned anything yet.");
         }
 
-        // 1. Download CSV immediately
-        if(scanHistory.length > 0) {
-            downloadExcel(); 
-        }
+        if(scanHistory.length > 0) { downloadExcel(); }
 
-        // 2. Save snapshot to LocalStorage
         let backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
         const snapshot = {
             id: Date.now(),
@@ -273,10 +269,7 @@
         };
         
         backups.push(snapshot);
-        // Keep exactly 20 logs
-        if (backups.length > 20) {
-            backups.shift(); 
-        }
+        if (backups.length > 20) { backups.shift(); }
         localStorage.setItem('scannerBackups', JSON.stringify(backups));
 
         showLog("Backup file downloaded & saved safely to history!", "success");
@@ -318,7 +311,7 @@
                 scannedList = new Set(target.scannedData);
                 scanHistory = target.history || [];
                 updateSummaryUI();
-                saveSessionData(); // Push restored data to Firebase
+                saveSessionData(); 
                 document.getElementById('backup-modal').style.display = 'none';
                 showLog("Backup restored successfully!", "success");
             }
@@ -328,7 +321,7 @@
     // --- CLOUD SYNC LOGIC ---
     function saveSessionData() {
         allFlows[activeFlowName] = {
-            expected: Array.from(expectedList),
+            expected: Object.fromEntries(expectedMap), 
             scanned: Array.from(scannedList),
             history: scanHistory
         };
@@ -348,7 +341,7 @@
             } 
             
             if (Object.keys(allFlows).length === 0) {
-                allFlows = { 'Default Company': { expected: [], scanned: [], history: [] } };
+                allFlows = { 'Default Company': { expected: {}, scanned: [], history: [] } };
                 activeFlowName = 'Default Company';
             }
             
@@ -364,9 +357,7 @@
 
     function flashScreenGreen() {
         const flash = document.getElementById('flash-overlay');
-        flash.style.opacity = '1';
-        flash.style.display = 'block';
-        
+        flash.style.opacity = '1'; flash.style.display = 'block';
         setTimeout(() => { flash.style.opacity = '0'; }, 100);
         setTimeout(() => { flash.style.display = 'none'; }, 300); 
     }
@@ -397,7 +388,6 @@
 
     function onCameraScanSuccess(decodedText) {
         if (isCameraPaused) return; 
-
         processScannedId(decodedText);
         
         isCameraPaused = true;
@@ -409,7 +399,7 @@
         }, 1500);
     }
 
-    // --- UNIFIED SCANNING LOGIC ---
+    // --- SCANNING LOGIC ---
     function processScannedId(scannedId) {
         if (scannedId === '') return; 
 
@@ -417,7 +407,7 @@
             triggerDuplicateLockout(scannedId);
             return; 
         } 
-        else if (expectedList.has(scannedId)) {
+        else if (expectedMap.has(scannedId)) {
             scannedList.add(scannedId);
             const now = new Date();
             const timestamp = now.toLocaleTimeString() + " on " + now.toLocaleDateString();
@@ -443,7 +433,7 @@
         }
     });
 
-    // --- STANDARD APP LOGIC ---
+    // --- APP LOGIC ---
     function refreshFlowDropdown() {
         const selector = document.getElementById('flow-selector');
         selector.innerHTML = '';
@@ -458,13 +448,20 @@
     function loadFlowIntoMemory(flowName) {
         activeFlowName = flowName;
         const flowData = allFlows[flowName];
-        expectedList = new Set(flowData.expected || []);
+        
+        expectedMap = new Map();
+        if (Array.isArray(flowData.expected)) {
+            flowData.expected.forEach(id => expectedMap.set(id, ""));
+        } else if (flowData.expected && typeof flowData.expected === 'object') {
+            Object.entries(flowData.expected).forEach(([tid, oid]) => expectedMap.set(tid, oid));
+        }
+
         scannedList = new Set(flowData.scanned || []);
         scanHistory = flowData.history || [];
 
         document.getElementById('adding-target-text').innerText = flowName;
         document.getElementById('active-flow-label').innerText = "Target: " + flowName.toUpperCase();
-        document.getElementById('total-expected').innerText = expectedList.size;
+        document.getElementById('total-expected').innerText = expectedMap.size;
         
         updateSummaryUI();
         document.getElementById('scanner-input').focus();
@@ -477,7 +474,7 @@
         if (allFlows[cleanName]) { alert("A company with this name already exists!"); return; }
         
         saveSessionData(); 
-        allFlows[cleanName] = { expected: [], scanned: [], history: [] }; 
+        allFlows[cleanName] = { expected: {}, scanned: [], history: [] }; 
         refreshFlowDropdown();
         document.getElementById('flow-selector').value = cleanName;
         loadFlowIntoMemory(cleanName);
@@ -512,10 +509,8 @@
                 oscillator.type = 'sine'; 
                 oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); 
                 oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-                
                 gainNode.gain.setValueAtTime(2.0, audioCtx.currentTime); 
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2); 
-                
                 oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
                 oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.2);
             } else {
@@ -529,16 +524,14 @@
     }
 
     function triggerDuplicateLockout(id) {
-        isCameraPaused = true; 
-        playSound('duplicate');
+        isCameraPaused = true; playSound('duplicate');
         document.getElementById('scanner-input').disabled = true;
         document.getElementById('duplicate-id-text').innerText = id;
         document.getElementById('duplicate-modal').style.display = 'block';
     }
 
     function triggerInvalidLockout(id) {
-        isCameraPaused = true; 
-        playSound('invalid');
+        isCameraPaused = true; playSound('invalid');
         document.getElementById('scanner-input').disabled = true;
         document.getElementById('invalid-id-text').innerText = id;
         document.getElementById('invalid-modal').style.display = 'block';
@@ -547,23 +540,34 @@
     window.resumeScanning = function(modalId) {
         document.getElementById(modalId).style.display = 'none';
         const scannerInput = document.getElementById('scanner-input');
-        scannerInput.disabled = false;
-        scannerInput.value = '';
-        scannerInput.focus();
+        scannerInput.disabled = false; scannerInput.value = ''; scannerInput.focus();
         isCameraPaused = false; 
     };
 
     window.checkRemaining = function() {
-        if (expectedList.size === 0) { alert("You haven't loaded an expected list for this company yet!"); return; }
+        if (expectedMap.size === 0) { alert("You haven't loaded an expected list for this company yet!"); return; }
+        
         currentMissingIds = [];
-        expectedList.forEach(id => { if (!scannedList.has(id)) { currentMissingIds.push(id); } });
+        let missingLinks = [];
+
+        expectedMap.forEach((orderId, trackingId) => {
+            if (!scannedList.has(trackingId)) {
+                currentMissingIds.push(trackingId);
+                
+                if (orderId) {
+                    missingLinks.push(`https://sellercentral.amazon.in/easyship/print-documents?orderID=${orderId}`);
+                } else {
+                    missingLinks.push(`[No Order ID Found] Tracking: ${trackingId}`);
+                }
+            }
+        });
 
         if (currentMissingIds.length === 0) {
             playSound('success'); flashScreenGreen();
             alert(`🎉 CONGRATULATIONS! \nYou have successfully scanned 100% of the parcels for ${activeFlowName}.`);
         } else {
             document.getElementById('missing-flow-name').innerText = activeFlowName;
-            document.getElementById('missing-list-text').value = currentMissingIds.join('\n');
+            document.getElementById('missing-list-text').value = missingLinks.join('\n');
             document.getElementById('missing-modal').style.display = 'block';
         }
     };
@@ -587,7 +591,6 @@
         reader.readAsText(file);
     };
 
-    // --- NEW REVERSE FILE HANDLER ---
     window.handleReverseFileUpload = function(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -609,13 +612,19 @@
         lines.forEach(line => {
             if (line.trim() === '') return;
             const columns = line.split(/[,\t]/);
-            let trackingId = ""; let shipDateStr = "";
+            let trackingId = ""; let shipDateStr = ""; let orderId = "";
 
-            if (columns.length >= 3) { trackingId = columns[1].trim(); shipDateStr = columns[2].trim(); } 
-            else if (columns.length === 2) { trackingId = columns[0].trim(); shipDateStr = columns[1].trim(); } 
-            else { trackingId = line.trim(); }
+            if (columns.length >= 3) {
+                orderId = columns[0].trim().replace(/^"|"$/g, '');
+                trackingId = columns[1].trim().replace(/^"|"$/g, '');
+                shipDateStr = columns[2].trim().replace(/^"|"$/g, '');
+            } else if (columns.length === 2) {
+                orderId = columns[0].trim().replace(/^"|"$/g, '');
+                trackingId = columns[1].trim().replace(/^"|"$/g, '');
+            } else {
+                trackingId = line.trim().replace(/^"|"$/g, '');
+            }
 
-            trackingId = trackingId.replace(/^"|"$/g, ''); shipDateStr = shipDateStr.replace(/^"|"$/g, '');
             if (trackingId.toLowerCase() === 'tracking-id' || trackingId.toLowerCase() === 'tracking id' || trackingId === '') return;
 
             if (useDateFilter && shipDateStr) {
@@ -623,10 +632,13 @@
                 if (parsedDate !== targetDate) { skippedDueToDate++; return; }
             }
 
-            if (trackingId && !expectedList.has(trackingId)) { expectedList.add(trackingId); addedCount++; }
+            if (trackingId && !expectedMap.has(trackingId)) {
+                expectedMap.set(trackingId, orderId);
+                addedCount++;
+            }
         });
         
-        document.getElementById('total-expected').innerText = expectedList.size;
+        document.getElementById('total-expected').innerText = expectedMap.size;
         let message = `Added ${addedCount} IDs from ${sourceName}.`;
         if (skippedDueToDate > 0) message += ` (Skipped ${skippedDueToDate} bad dates).`;
         
@@ -635,7 +647,6 @@
         saveSessionData(); 
     }
 
-    // --- NEW REVERSE FILE PROCESSOR ---
     function processReverseRawText(text, sourceName) {
         const lines = text.split('\n');
         let removedCount = 0;
@@ -646,29 +657,27 @@
             let trackingId = "";
 
             if (columns.length >= 3) { trackingId = columns[1].trim(); } 
-            else if (columns.length === 2) { trackingId = columns[0].trim(); } 
+            else if (columns.length === 2) { trackingId = columns[1].trim(); } 
             else { trackingId = line.trim(); }
 
             trackingId = trackingId.replace(/^"|"$/g, '');
             if (trackingId.toLowerCase() === 'tracking-id' || trackingId.toLowerCase() === 'tracking id' || trackingId === '') return;
 
-            // Remove from expected list if it exists
-            if (expectedList.has(trackingId)) {
-                expectedList.delete(trackingId);
+            if (expectedMap.has(trackingId)) {
+                expectedMap.delete(trackingId);
                 removedCount++;
             }
         });
         
-        document.getElementById('total-expected').innerText = expectedList.size;
+        document.getElementById('total-expected').innerText = expectedMap.size;
         showLog(`Removed ${removedCount} expected IDs using ${sourceName}.`, "warning");
         document.getElementById('scanner-input').focus(); 
         saveSessionData(); 
     }
 
-    // MODIFIED TO ACT AS A DATA RESET ONLY
     window.resetCurrentFlow = function() {
         if (confirm(`⚠️ Are you sure you want to clear the previous day's scanned files for company "${activeFlowName}"? (The company name structure and your backups will NOT be deleted)`)) {
-            expectedList.clear(); scannedList.clear(); scanHistory = [];
+            expectedMap.clear(); scannedList.clear(); scanHistory = [];
             document.getElementById('total-expected').innerText = "0";
             document.getElementById('expected-ids').value = '';
             updateSummaryUI(); saveSessionData(); 
@@ -682,14 +691,18 @@
         const tbody = document.getElementById('history-body');
         tbody.innerHTML = ''; 
         for (let i = scanHistory.length - 1; i >= 0; i--) {
-            const row = `<tr><td>${scanHistory[i].number}</td><td><strong>${scanHistory[i].id}</strong></td><td>${scanHistory[i].time}</td></tr>`;
+            let oId = expectedMap.get(scanHistory[i].id) || "-";
+            const row = `<tr><td>${scanHistory[i].number}</td><td>${oId}</td><td><strong>${scanHistory[i].id}</strong></td><td>${scanHistory[i].time}</td></tr>`;
             tbody.innerHTML += row;
         }
     }
 
     window.downloadExcel = function() {
-        let csvContent = "Number,Tracking ID,Time Scanned\n";
-        scanHistory.forEach(record => { csvContent += `"${record.number}","${record.id}","${record.time}"\n`; });
+        let csvContent = "Number,Order ID,Tracking ID,Time Scanned\n";
+        scanHistory.forEach(record => { 
+            let oId = expectedMap.get(record.id) || "";
+            csvContent += `"${record.number}","${oId}","${record.id}","${record.time}"\n`; 
+        });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -700,8 +713,12 @@
     };
 
     window.downloadMissingExcel = function() {
-        let csvContent = "Missing Tracking ID\n";
-        currentMissingIds.forEach(id => { csvContent += `"${id}"\n`; });
+        let csvContent = "Missing Tracking ID,Missing Order ID,Print Link\n";
+        currentMissingIds.forEach(id => { 
+            let oId = expectedMap.get(id) || "";
+            let link = oId ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${oId}` : "";
+            csvContent += `"${id}","${oId}","${link}"\n`; 
+        });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
