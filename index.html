@@ -60,7 +60,7 @@
         tr:nth-child(even) { background-color: #f9f9f9; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; text-align: center; }
-        .modal-content { background: white; margin: 10% auto; padding: 40px; width: 90%; max-width: 600px; border-radius: 8px; }
+        .modal-content { background: white; margin: 10% auto; padding: 40px; width: 90%; max-width: 650px; border-radius: 8px; }
         .modal-id-text { font-size: 24px; font-weight: bold; margin: 20px 0; }
 
         .red-modal { border: 8px solid #dc3545; box-shadow: 0 0 20px red; }
@@ -88,6 +88,10 @@
             pointer-events: none; 
             transition: opacity 0.2s;
         }
+
+        /* MISSING TABLE STYLES */
+        #missing-table td { padding: 8px 5px; vertical-align: middle; }
+        .missing-checkbox { width: 20px; height: 20px; cursor: pointer; margin: 0; }
     </style>
 </head>
 <body>
@@ -124,8 +128,27 @@
 <div id="missing-modal" class="modal-overlay">
     <div class="modal-content blue-modal">
         <h2>📋 Missing Parcels</h2>
-        <p style="text-align: center; font-size: 18px;">Remaining to scan for <strong id="missing-flow-name"></strong>:</p>
-        <textarea id="missing-list-text" rows="10" readonly style="width: 100%; font-family: monospace; font-size: 14px; background-color: #f8f9fa; cursor: text; white-space: pre;"></textarea>
+        <p style="text-align: center; font-size: 18px; margin-bottom: 5px;">Remaining to scan for <strong id="missing-flow-name"></strong>:</p>
+        
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+            <button id="copy-bulk-btn" class="btn-primary" style="font-size: 14px; padding: 8px 15px; background: #28a745;" onclick="copyBulkMissingLinks()">📋 Copy All Links</button>
+        </div>
+
+        <div style="max-height: 350px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #ccc; border-radius: 4px;">
+            <table id="missing-table" style="margin-top: 0; border: none; width: 100%;">
+                <thead style="position: sticky; top: 0; background: #e9ecef; z-index: 1;">
+                    <tr>
+                        <th style="width: 30px; text-align: center;">✓</th>
+                        <th>Tracking ID</th>
+                        <th>Order ID</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="missing-list-container">
+                    </tbody>
+            </table>
+        </div>
+
         <div class="button-group" style="margin-top: 20px;">
             <button class="btn-primary" style="flex: 2; font-size: 18px;" onclick="downloadMissingExcel()">⬇️ Download Missing List</button>
             <button class="btn-secondary" style="flex: 1; font-size: 18px;" onclick="resumeScanning('missing-modal')">Close</button>
@@ -240,7 +263,7 @@
 
     let allFlows = {}; 
     let activeFlowName = "";
-    let expectedMap = new Map(); // Changed from Set to Map to store Tracking ID -> Order ID
+    let expectedMap = new Map(); 
     let scannedList = new Set();
     let scanHistory = []; 
     let currentMissingIds = []; 
@@ -250,7 +273,6 @@
 
     document.getElementById('target-ship-date').value = new Date().toISOString().split('T')[0];
 
-    // --- BACKUP SYSTEM LOGIC ---
     window.createBackup = function() {
         if (scannedList.size === 0) {
             alert("Warning: You haven't scanned anything yet.");
@@ -318,7 +340,6 @@
         }
     };
 
-    // --- CLOUD SYNC LOGIC ---
     function saveSessionData() {
         allFlows[activeFlowName] = {
             expected: Object.fromEntries(expectedMap), 
@@ -362,7 +383,6 @@
         setTimeout(() => { flash.style.display = 'none'; }, 300); 
     }
 
-    // --- CAMERA LOGIC ---
     window.startCamera = function() {
         document.getElementById('camera-modal').style.display = 'block';
         html5QrCode = new Html5Qrcode("reader");
@@ -399,7 +419,6 @@
         }, 1500);
     }
 
-    // --- SCANNING LOGIC ---
     function processScannedId(scannedId) {
         if (scannedId === '') return; 
 
@@ -433,7 +452,6 @@
         }
     });
 
-    // --- APP LOGIC ---
     function refreshFlowDropdown() {
         const selector = document.getElementById('flow-selector');
         selector.innerHTML = '';
@@ -544,21 +562,32 @@
         isCameraPaused = false; 
     };
 
+    // --- POPULATE THE NEW TABLE ---
     window.checkRemaining = function() {
         if (expectedMap.size === 0) { alert("You haven't loaded an expected list for this company yet!"); return; }
         
         currentMissingIds = [];
-        let missingLinks = [];
+        const missingContainer = document.getElementById('missing-list-container');
+        missingContainer.innerHTML = ''; // Clear old rows
 
         expectedMap.forEach((orderId, trackingId) => {
             if (!scannedList.has(trackingId)) {
                 currentMissingIds.push(trackingId);
                 
-                if (orderId) {
-                    missingLinks.push(`https://sellercentral.amazon.in/easyship/print-documents?orderID=${orderId}`);
-                } else {
-                    missingLinks.push(`[No Order ID Found] Tracking: ${trackingId}`);
-                }
+                let link = orderId ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${orderId}` : "";
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align: center; border-bottom: 1px solid #ddd;">
+                        ${link ? `<input type="checkbox" class="missing-checkbox" data-link="${link}" onchange="updateBulkCopyButton()">` : ''}
+                    </td>
+                    <td style="border-bottom: 1px solid #ddd;"><strong>${trackingId}</strong></td>
+                    <td style="border-bottom: 1px solid #ddd;">${orderId || '<span style="color:#999;font-size:12px;">Unknown</span>'}</td>
+                    <td style="text-align: right; border-bottom: 1px solid #ddd;">
+                        ${link ? `<a href="#" onclick="copySingleLink('${link}', this); return false;" style="color: #0056b3; font-weight: bold; text-decoration: none;">📋 Copy Link</a>` : '<span style="color:#999; font-size:12px;">No Link</span>'}
+                    </td>
+                `;
+                missingContainer.appendChild(tr);
             }
         });
 
@@ -567,9 +596,62 @@
             alert(`🎉 CONGRATULATIONS! \nYou have successfully scanned 100% of the parcels for ${activeFlowName}.`);
         } else {
             document.getElementById('missing-flow-name').innerText = activeFlowName;
-            document.getElementById('missing-list-text').value = missingLinks.join('\n');
+            updateBulkCopyButton(); // Set initial button state
             document.getElementById('missing-modal').style.display = 'block';
         }
+    };
+
+    window.updateBulkCopyButton = function() {
+        const checkboxes = document.querySelectorAll('.missing-checkbox');
+        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const btn = document.getElementById('copy-bulk-btn');
+
+        if (checkedCount > 0) {
+            btn.innerText = `📋 Copy ${checkedCount} Selected Links`;
+        } else {
+            btn.innerText = "📋 Copy All Links";
+        }
+    };
+
+    window.copyBulkMissingLinks = function() {
+        const checkboxes = document.querySelectorAll('.missing-checkbox');
+        const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+        let linksToCopy = [];
+
+        if (checkedBoxes.length > 0) {
+            linksToCopy = checkedBoxes.map(cb => cb.getAttribute('data-link'));
+        } else {
+            linksToCopy = Array.from(checkboxes).map(cb => cb.getAttribute('data-link'));
+        }
+
+        if (linksToCopy.length === 0) {
+            alert("No links available to copy.");
+            return;
+        }
+
+        navigator.clipboard.writeText(linksToCopy.join('\n')).then(() => {
+            const btn = document.getElementById('copy-bulk-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "✅ Copied to Clipboard!";
+            setTimeout(() => { btn.innerText = originalText; }, 2000);
+        }).catch(err => {
+            alert("Failed to copy links. Ensure you are using HTTPS.");
+            console.error(err);
+        });
+    };
+
+    window.copySingleLink = function(link, el) {
+        navigator.clipboard.writeText(link).then(() => {
+            const originalText = el.innerText;
+            el.innerText = "✅ Copied";
+            el.style.color = "#28a745";
+            setTimeout(() => {
+                el.innerText = originalText;
+                el.style.color = "#0056b3";
+            }, 2000);
+        }).catch(err => {
+            alert("Failed to copy link. Ensure you are using HTTPS.");
+        });
     };
 
     window.addExpectedIDsFromPaste = function() {
