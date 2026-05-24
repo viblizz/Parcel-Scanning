@@ -3,25 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Parcel Scanner Pro</title>
-    
+    <title>Cloud Parcel Scanner Pro – Multi-Device</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
         .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        
-        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
+
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
         .header-bar h1 { margin: 0; color: #333; font-size: 24px; }
-        .cloud-status { font-size: 14px; padding: 5px 10px; background: #d4edda; color: #155724; border-radius: 20px; font-weight: bold; border: 1px solid #c3e6cb; }
-        .flow-controls { display: flex; gap: 10px; align-items: center; background: #eef; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-top: 10px;}
+
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        .cloud-status { font-size: 14px; padding: 5px 12px; background: #d4edda; color: #155724; border-radius: 20px; font-weight: bold; border: 1px solid #c3e6cb; transition: background 0.3s; }
+        .cloud-status.syncing { background: #cce5ff; color: #004085; border-color: #b8daff; }
+        .cloud-status.error   { background: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+
+        /* Real-time sync badge row */
+        .sync-bar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; }
+        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; display: inline-block; }
+        .sync-dot.live { background: #28a745; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .last-sync-text { font-size: 12px; color: #888; }
+
+        .flow-controls { display: flex; gap: 10px; align-items: center; background: #eef; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-top: 10px; flex-wrap: wrap; }
         select { padding: 8px; font-size: 16px; border-radius: 4px; font-weight: bold; }
-        
+
         .section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
         textarea, input[type="text"], input[type="date"] { width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button { padding: 10px 15px; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        
-        .btn-primary { background: #0056b3; }
+
+        .btn-primary   { background: #0056b3; }
         .btn-primary:hover { background: #004494; }
         .btn-secondary { background: #6c757d; }
         .btn-secondary:hover { background: #5a6268; }
@@ -31,79 +41,78 @@
         #download-btn { background: #28a745; margin-right: 10px; }
         #download-btn:hover { background: #218838; }
         #download-btn:disabled { background: #ccc; cursor: not-allowed; }
-
         #finish-btn { background: #17a2b8; }
         #finish-btn:hover { background: #138496; }
-
-        #backup-btn { background: #ff9800; margin-right: 10px;}
+        #backup-btn { background: #ff9800; margin-right: 10px; }
         #backup-btn:hover { background: #e68a00; }
         #view-backup-btn { background: #6f42c1; }
         #view-backup-btn:hover { background: #59339d; }
 
-        .filter-box { background: #e2e3e5; padding: 10px; border-radius: 4px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: #383d41;}
+        .filter-box { background: #e2e3e5; padding: 10px; border-radius: 4px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: #383d41; flex-wrap: wrap; gap: 8px; }
         .filter-left { display: flex; align-items: center; gap: 10px; }
         .filter-box input[type="date"] { width: auto; margin-top: 0; padding: 5px; }
         .filter-box input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
 
         .scanner-wrapper { position: relative; }
-        #active-flow-label { position: absolute; top: 15px; right: 15px; background: #0056b3; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;}
-        #scanner-input { font-size: 24px; background-color: #eef; transition: background-color 0.3s; padding-right: 150px; flex: 1; margin-top: 0;}
+        #active-flow-label { position: absolute; top: 50%; right: 160px; transform: translateY(-50%); background: #0056b3; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+        #scanner-input { font-size: 24px; background-color: #eef; transition: background-color 0.3s; padding-right: 310px; width: 100%; box-sizing: border-box; margin-top: 0; }
         #scanner-input:disabled { background-color: #ccc; cursor: not-allowed; }
-        
+
         #log { margin-top: 10px; padding: 10px; font-weight: bold; border-radius: 4px; }
         .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        
+
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
         tr:nth-child(even) { background-color: #f9f9f9; }
 
+        /* --- MODALS --- */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; text-align: center; }
         .modal-content { background: white; margin: 10% auto; padding: 40px; width: 90%; max-width: 650px; border-radius: 8px; }
         .modal-id-text { font-size: 24px; font-weight: bold; margin: 20px 0; }
 
         .red-modal { border: 8px solid #dc3545; box-shadow: 0 0 20px red; }
         .red-modal h2 { color: #dc3545; font-size: 32px; margin-top: 0; }
-        .btn-danger { background: #dc3545; font-size: 20px; padding: 15px 30px; border-radius: 8px; width: 100%; color: white; border: none; font-weight: bold; cursor: pointer;}
-        
+        .btn-danger { background: #dc3545; font-size: 20px; padding: 15px 30px; border-radius: 8px; width: 100%; color: white; border: none; font-weight: bold; cursor: pointer; }
+
         .yellow-modal { border: 8px solid #ffc107; box-shadow: 0 0 20px #ffc107; }
         .yellow-modal h2 { color: #d39e00; font-size: 32px; margin-top: 0; }
-        .btn-warning { background: #ffc107; font-size: 20px; padding: 15px 30px; border-radius: 8px; width: 100%; color: #333; border: none; font-weight: bold; cursor: pointer;}
+        .btn-warning { background: #ffc107; font-size: 20px; padding: 15px 30px; border-radius: 8px; width: 100%; color: #333; border: none; font-weight: bold; cursor: pointer; }
 
         .blue-modal { border: 8px solid #17a2b8; box-shadow: 0 0 20px #17a2b8; text-align: left; }
         .blue-modal h2 { color: #17a2b8; font-size: 28px; margin-top: 0; text-align: center; }
-        
-        #camera-modal { z-index: 900; } 
+
+        #camera-modal { z-index: 900; }
         #reader { width: 100%; min-height: 300px; background: #000; border-radius: 8px; overflow: hidden; }
-        
-        .button-group { display: flex; gap: 10px; margin-top: 10px; }
 
-        #flash-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(40, 167, 69, 0.7); 
-            z-index: 9999; 
-            pointer-events: none; 
-            transition: opacity 0.2s;
-        }
+        .button-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 
-        /* MISSING TABLE STYLES */
+        #flash-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(40, 167, 69, 0.7); z-index: 9999; pointer-events: none; transition: opacity 0.2s; }
+
         #missing-table td { padding: 8px 5px; vertical-align: middle; }
         .missing-checkbox { width: 20px; height: 20px; cursor: pointer; margin: 0; }
+
+        /* Scan-row highlight animation */
+        @keyframes rowFade { from { background: #d4edda; } to { background: transparent; } }
+        .new-row { animation: rowFade 1.5s ease forwards; }
+
+        /* Multi-device sync info banner */
+        .multidev-banner { background: #e8f4fd; border: 1px solid #bee3f8; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #2c5282; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .multidev-banner strong { color: #1a365d; }
     </style>
 </head>
 <body>
 
 <div id="flash-overlay"></div>
 
+<!-- ===================== MODALS ===================== -->
 <div id="backup-modal" class="modal-overlay">
-    <div class="modal-content" style="border: 8px solid #ff9800; box-shadow: 0 0 20px #ff9800; max-width: 600px; text-align: left;">
-        <h2 style="color: #e68a00; margin-top: 0; text-align: center;">💾 Saved Backups (Last 20)</h2>
-        <p style="text-align: center; color: #666; font-size: 14px;">These backups are stored safely in your browser. Even if you clear your flow, you can restore data from here.</p>
-        <div id="backup-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #ccc; padding: 10px; border-radius: 4px; background: #fafafa;"></div>
-        <button class="btn-secondary" style="width: 100%; font-size: 18px;" onclick="document.getElementById('backup-modal').style.display='none'">Close</button>
+    <div class="modal-content" style="border:8px solid #ff9800;box-shadow:0 0 20px #ff9800;max-width:600px;text-align:left;">
+        <h2 style="color:#e68a00;margin-top:0;text-align:center;">💾 Saved Backups (Last 20)</h2>
+        <p style="text-align:center;color:#666;font-size:14px;">Stored locally in your browser. Restore pushes data back to the cloud for all devices.</p>
+        <div id="backup-list" style="max-height:300px;overflow-y:auto;margin-bottom:15px;border:1px solid #ccc;padding:10px;border-radius:4px;background:#fafafa;"></div>
+        <button class="btn-secondary" style="width:100%;font-size:18px;" onclick="document.getElementById('backup-modal').style.display='none'">Close</button>
     </div>
 </div>
 
@@ -112,7 +121,7 @@
         <h2>⚠️ DUPLICATE!</h2>
         <p>This parcel has already been scanned in this flow:</p>
         <div id="duplicate-id-text" class="modal-id-text"></div>
-        <button class="btn-danger" onclick="resumeScanning('duplicate-modal')">OK - CONTINUE</button>
+        <button class="btn-danger" onclick="resumeScanning('duplicate-modal')">OK – CONTINUE</button>
     </div>
 </div>
 
@@ -121,112 +130,121 @@
         <h2>⚠️ INVALID BARCODE!</h2>
         <p>This parcel is NOT in the expected list for this flow:</p>
         <div id="invalid-id-text" class="modal-id-text"></div>
-        <button class="btn-warning" onclick="resumeScanning('invalid-modal')">OK - CONTINUE</button>
+        <button class="btn-warning" onclick="resumeScanning('invalid-modal')">OK – CONTINUE</button>
     </div>
 </div>
 
 <div id="missing-modal" class="modal-overlay">
     <div class="modal-content blue-modal">
         <h2>📋 Missing Parcels</h2>
-        <p style="text-align: center; font-size: 18px; margin-bottom: 5px;">Remaining to scan for <strong id="missing-flow-name"></strong>:</p>
-        
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-            <button id="copy-bulk-btn" class="btn-primary" style="font-size: 14px; padding: 8px 15px; background: #28a745;" onclick="copyBulkMissingLinks()">📋 Copy All Links</button>
+        <p style="text-align:center;font-size:18px;margin-bottom:5px;">Remaining to scan for <strong id="missing-flow-name"></strong>:</p>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+            <button id="copy-bulk-btn" class="btn-primary" style="font-size:14px;padding:8px 15px;background:#28a745;" onclick="copyBulkMissingLinks()">📋 Copy All Links</button>
         </div>
-
-        <div style="max-height: 350px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #ccc; border-radius: 4px;">
-            <table id="missing-table" style="margin-top: 0; border: none; width: 100%;">
-                <thead style="position: sticky; top: 0; background: #e9ecef; z-index: 1;">
+        <div style="max-height:350px;overflow-y:auto;background:#f8f9fa;border:1px solid #ccc;border-radius:4px;">
+            <table id="missing-table" style="margin-top:0;border:none;width:100%;">
+                <thead style="position:sticky;top:0;background:#e9ecef;z-index:1;">
                     <tr>
-                        <th style="width: 30px; text-align: center;">✓</th>
+                        <th style="width:30px;text-align:center;">✓</th>
                         <th>Tracking ID</th>
                         <th>Order ID</th>
-                        <th style="text-align: right;">Action</th>
+                        <th style="text-align:right;">Action</th>
                     </tr>
                 </thead>
-                <tbody id="missing-list-container">
-                    </tbody>
+                <tbody id="missing-list-container"></tbody>
             </table>
         </div>
-
-        <div class="button-group" style="margin-top: 20px;">
-            <button class="btn-primary" style="flex: 2; font-size: 18px;" onclick="downloadMissingExcel()">⬇️ Download Missing List</button>
-            <button class="btn-secondary" style="flex: 1; font-size: 18px;" onclick="resumeScanning('missing-modal')">Close</button>
+        <div class="button-group" style="margin-top:20px;">
+            <button class="btn-primary" style="flex:2;font-size:18px;" onclick="downloadMissingExcel()">⬇️ Download Missing List</button>
+            <button class="btn-secondary" style="flex:1;font-size:18px;" onclick="resumeScanning('missing-modal')">Close</button>
         </div>
     </div>
 </div>
 
-<div id="camera-modal" class="modal-overlay">
-    <div class="modal-content" style="border: 8px solid #333; padding: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h2 style="margin: 0; color: #333;">📷 Live Camera Scanner</h2>
+<div id="camera-modal" class="modal-overlay" style="z-index:900;">
+    <div class="modal-content" style="border:8px solid #333;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+            <h2 style="margin:0;color:#333;">📷 Live Camera Scanner</h2>
             <button class="btn-danger-sm" onclick="stopCamera()">✖ Close Camera</button>
         </div>
-        <p style="color: #666; margin-top: 0;">Point your camera at a barcode.</p>
+        <p style="color:#666;margin-top:0;">Point your camera at a barcode.</p>
         <div id="reader"></div>
     </div>
 </div>
 
+<!-- ===================== MAIN UI ===================== -->
 <div class="container">
+
     <div class="header-bar">
         <h1>☁️ Cloud Scanner Pro</h1>
-        <div class="cloud-status" id="cloud-status">Connecting to Firebase...</div>
+        <div class="header-right">
+            <div class="cloud-status" id="cloud-status">Connecting…</div>
+            <div class="sync-bar">
+                <span class="sync-dot" id="sync-dot"></span>
+                <span class="last-sync-text" id="last-sync-text">Not yet synced</span>
+            </div>
+        </div>
     </div>
-    
+
+    <div class="multidev-banner">
+        🔗 <strong>Multi-Device Sync Active.</strong>&nbsp; Any device scanning to the same company updates all screens instantly in real-time.
+    </div>
+
     <div class="flow-controls">
-        <span>Company Name:</span>
+        <span>Company:</span>
         <select id="flow-selector" onchange="switchFlow()"></select>
         <button class="btn-primary" onclick="createNewFlow()">➕ New Company</button>
         <button class="btn-danger-sm" onclick="deleteCurrentFlow()" title="Delete Company">🗑️</button>
     </div>
 
-    <div class="section">
+    <!-- SECTION 1 -->
+    <div class="section" style="margin-top:16px;">
         <h3>1. Input Expected Tracking IDs</h3>
-        <p style="margin-top: 0; color: #666; font-size: 14px;">Adding IDs to: <strong id="adding-target-text"></strong></p>
-        
+        <p style="margin-top:0;color:#666;font-size:14px;">Adding IDs to: <strong id="adding-target-text">—</strong></p>
+
         <div class="filter-box">
             <div class="filter-left">
                 <input type="checkbox" id="use-date-filter" checked>
                 <label for="use-date-filter">Only load parcels shipping on:</label>
                 <input type="date" id="target-ship-date">
             </div>
-            <div style="display: flex; gap: 10px;">
-                <input type="file" id="file-upload" accept=".txt, .csv" style="display: none;" onchange="handleFileUpload(event)">
-                <button class="btn-primary" onclick="document.getElementById('file-upload').click()" style="margin-top: 0;">📁 Upload .txt / .csv</button>
-
-                <input type="file" id="reverse-file-upload" accept=".txt, .csv" style="display: none;" onchange="handleReverseFileUpload(event)">
-                <button class="btn-secondary" style="background: #dc3545; border-color: #dc3545; margin-top: 0;" onclick="document.getElementById('reverse-file-upload').click()">📁 Reverse File</button>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <input type="file" id="file-upload" accept=".txt,.csv" style="display:none;" onchange="handleFileUpload(event)">
+                <button class="btn-primary" style="margin-top:0;" onclick="document.getElementById('file-upload').click()">📁 Upload .txt / .csv</button>
+                <input type="file" id="reverse-file-upload" accept=".txt,.csv" style="display:none;" onchange="handleReverseFileUpload(event)">
+                <button style="background:#dc3545;margin-top:0;" onclick="document.getElementById('reverse-file-upload').click()">📁 Reverse File</button>
             </div>
         </div>
 
-        <textarea id="expected-ids" rows="5" placeholder="Or paste your Excel columns here...&#10;Order ID     Tracking ID     Date"></textarea>
-        
+        <textarea id="expected-ids" rows="5" placeholder="Or paste your Excel columns here…&#10;Order ID     Tracking ID     Date"></textarea>
+
         <div class="button-group">
             <button class="btn-primary" onclick="addExpectedIDsFromPaste()">➕ Add Pasted Data</button>
             <button class="btn-secondary" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
         </div>
     </div>
 
+    <!-- SECTION 2 -->
     <div class="section">
         <h3>2. Scan Parcels</h3>
-        <div class="scanner-wrapper" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-            <input type="text" id="scanner-input" placeholder="Scan barcode here..." autofocus>
-            <div id="active-flow-label">Target: DEFAULT</div>
-            <button class="btn-primary" onclick="startCamera()" style="padding: 10px 20px; font-size: 18px; background: #28a745; margin-top: 0;">📷 Mobile Camera</button>
+        <div class="scanner-wrapper" style="display:flex;gap:10px;align-items:center;margin-top:10px;">
+            <input type="text" id="scanner-input" placeholder="Scan barcode here…" autofocus>
+            <div id="active-flow-label">Target: —</div>
+            <button class="btn-primary" onclick="startCamera()" style="padding:10px 20px;font-size:18px;background:#28a745;margin-top:0;white-space:nowrap;">📷 Camera</button>
         </div>
-        <div id="log" style="display: none;"></div>
+        <div id="log" style="display:none;"></div>
     </div>
 
-    <div class="section" style="border-bottom: none;">
+    <!-- SECTION 3 -->
+    <div class="section" style="border-bottom:none;">
         <h3>3. Scanned Summary (<span id="scanned-count">0</span> / <span id="total-expected">0</span>)</h3>
-        
-        <div class="button-group" style="margin-bottom: 10px;">
+
+        <div class="button-group" style="margin-bottom:10px;">
             <button id="backup-btn" onclick="createBackup()">💾 Save Backup Snapshot</button>
             <button id="view-backup-btn" onclick="showBackups()">📂 View Backups</button>
         </div>
-
         <div class="button-group">
-            <button id="download-btn" onclick="downloadExcel()" disabled>⬇️ Download Current Scanned List</button>
+            <button id="download-btn" onclick="downloadExcel()" disabled>⬇️ Download Scanned List</button>
             <button id="finish-btn" onclick="checkRemaining()">🏁 Finish & Check Missing</button>
         </div>
 
@@ -237,6 +255,7 @@
                     <th>Order ID</th>
                     <th>Tracking ID</th>
                     <th>Time Scanned</th>
+                    <th>Device</th>
                 </tr>
             </thead>
             <tbody id="history-body"></tbody>
@@ -244,581 +263,633 @@
     </div>
 </div>
 
+<!-- ===================== FIREBASE SCRIPT ===================== -->
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, get, push, onValue, remove }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyA-xmL30L6UtY3Y5kSCizjUDggM2BxRnmY",
-      authDomain: "parcel-scanning-af4d7.firebaseapp.com",
-      databaseURL: "https://parcel-scanning-af4d7-default-rtdb.firebaseio.com",
-      projectId: "parcel-scanning-af4d7",
-      storageBucket: "parcel-scanning-af4d7.firebasestorage.app",
-      messagingSenderId: "433825457659",
-      appId: "1:433825457659:web:add481ad74320372f3175e"
-    };
+/* ── Firebase config ── */
+const firebaseConfig = {
+    apiKey:            "AIzaSyA-xmL30L6UtY3Y5kSCizjUDggM2BxRnmY",
+    authDomain:        "parcel-scanning-af4d7.firebaseapp.com",
+    databaseURL:       "https://parcel-scanning-af4d7-default-rtdb.firebaseio.com",
+    projectId:         "parcel-scanning-af4d7",
+    storageBucket:     "parcel-scanning-af4d7.firebasestorage.app",
+    messagingSenderId: "433825457659",
+    appId:             "1:433825457659:web:add481ad74320372f3175e"
+};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
 
-    let allFlows = {}; 
-    let activeFlowName = "";
-    let expectedMap = new Map(); 
-    let scannedList = new Set();
-    let scanHistory = []; 
-    let currentMissingIds = []; 
+/* ── State ── */
+let allFlowKeys   = {};          // { sanitizedKey: displayName }
+let activeFlowKey = "";
+let activeFlowName= "";
+let expectedMap   = new Map();   // trackingId → orderId
+let scannedList   = new Set();   // for fast duplicate checks
+let scanHistory   = [];          // ordered array of scan records
 
-    let html5QrCode;
-    let isCameraPaused = false;
+let currentMissingIds = [];
+let activeScansUnsubscribe    = null;
+let activeExpectedUnsubscribe = null;
 
-    document.getElementById('target-ship-date').value = new Date().toISOString().split('T')[0];
+let html5QrCode;
+let isCameraPaused = false;
 
-    window.createBackup = function() {
-        if (scannedList.size === 0) {
-            alert("Warning: You haven't scanned anything yet.");
-        }
+/* A short, human-readable device tag stored in sessionStorage */
+const DEVICE_ID = (() => {
+    let id = sessionStorage.getItem('scannerDeviceId');
+    if (!id) {
+        id = "Dev-" + Math.random().toString(36).substring(2, 6).toUpperCase();
+        sessionStorage.setItem('scannerDeviceId', id);
+    }
+    return id;
+})();
 
-        if(scanHistory.length > 0) { downloadExcel(); }
+/* ── Helpers ── */
+function sanitizeKey(name) {
+    return name.replace(/[.#$[\]/\s]/g, '_');
+}
 
-        let backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
-        const snapshot = {
-            id: Date.now(),
-            time: new Date().toLocaleString(),
-            flow: activeFlowName,
-            scannedCount: scannedList.size,
-            scannedData: Array.from(scannedList),
-            history: scanHistory
-        };
-        
-        backups.push(snapshot);
-        if (backups.length > 20) { backups.shift(); }
-        localStorage.setItem('scannerBackups', JSON.stringify(backups));
+function setCloudStatus(text, state = 'ok') {
+    const el = document.getElementById('cloud-status');
+    el.innerText = text;
+    el.className = 'cloud-status' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '');
+}
 
-        showLog("Backup file downloaded & saved safely to history!", "success");
-    };
+function markSynced() {
+    document.getElementById('sync-dot').className = 'sync-dot live';
+    document.getElementById('last-sync-text').innerText =
+        'Last sync: ' + new Date().toLocaleTimeString();
+    setCloudStatus('✅ Live – ' + DEVICE_ID);
+}
 
-    window.showBackups = function() {
-        const backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
-        const listDiv = document.getElementById('backup-list');
-        listDiv.innerHTML = '';
+function flashScreenGreen() {
+    const f = document.getElementById('flash-overlay');
+    f.style.opacity = '1'; f.style.display = 'block';
+    setTimeout(() => { f.style.opacity = '0'; }, 100);
+    setTimeout(() => { f.style.display  = 'none'; }, 300);
+}
 
-        if (backups.length === 0) {
-            listDiv.innerHTML = '<p style="text-align:center; color:#666;">No backups saved yet.</p>';
+function showLog(msg, type) {
+    const box = document.getElementById('log');
+    box.style.display = 'block';
+    box.innerText = msg;
+    box.className  = type;
+    setTimeout(() => { box.style.display = 'none'; }, 4000);
+}
+
+function playSound(type) {
+    try {
+        const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        if (type === 'success') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(2.0, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + 0.2);
         } else {
-            [...backups].reverse().forEach((b) => {
-                const item = document.createElement('div');
-                item.style.borderBottom = "1px solid #ddd";
-                item.style.padding = "12px 0";
-                item.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>${b.time}</strong><br>
-                            <span style="font-size: 14px; color: #555;">Company: ${b.flow}</span><br>
-                            <span style="color: #28a745; font-weight: bold; font-size: 14px;">✓ ${b.scannedCount} items scanned</span>
-                        </div>
-                        <button onclick="restoreBackup(${b.id})" style="background: #17a2b8; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Restore</button>
-                    </div>
-                `;
-                listDiv.appendChild(item);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(type === 'duplicate' ? 200 : 400, ctx.currentTime);
+            gain.gain.setValueAtTime(0.5, ctx.currentTime);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + 0.4);
+        }
+    } catch(e) {}
+}
+
+/* ── Date default ── */
+document.getElementById('target-ship-date').value = new Date().toISOString().split('T')[0];
+
+/* ══════════════════════════════════════════
+   REAL-TIME LISTENERS
+   ══════════════════════════════════════════ */
+
+/** Listen to the flow list so every device sees new/deleted companies instantly. */
+function listenToFlowList() {
+    const listRef = ref(db, 'scannerV2/flowList');
+    onValue(listRef, (snapshot) => {
+        allFlowKeys = {};
+        if (snapshot.exists()) {
+            Object.entries(snapshot.val()).forEach(([k, v]) => { allFlowKeys[k] = v; });
+        }
+        if (Object.keys(allFlowKeys).length === 0) {
+            const dk = 'Default_Company';
+            allFlowKeys[dk] = 'Default Company';
+            set(ref(db, `scannerV2/flowList/${dk}`), 'Default Company');
+        }
+        refreshFlowDropdown();
+        /* Auto-load first flow if nothing loaded yet */
+        if (!activeFlowKey) {
+            const firstKey = Object.keys(allFlowKeys)[0];
+            loadFlowIntoMemory(firstKey, allFlowKeys[firstKey]);
+        }
+    }, (err) => {
+        setCloudStatus('❌ DB Locked – Check Rules', 'error');
+    });
+}
+
+/** Real-time listener for expected IDs of the active flow. */
+function attachExpectedListener(flowKey) {
+    if (activeExpectedUnsubscribe) { activeExpectedUnsubscribe(); activeExpectedUnsubscribe = null; }
+    const exRef = ref(db, `scannerV2/flows/${flowKey}/expected`);
+    activeExpectedUnsubscribe = onValue(exRef, (snapshot) => {
+        expectedMap = new Map();
+        if (snapshot.exists()) {
+            Object.entries(snapshot.val()).forEach(([tid, oid]) => {
+                expectedMap.set(tid, oid || '');
             });
         }
-        document.getElementById('backup-modal').style.display = 'block';
-    };
+        document.getElementById('total-expected').innerText = expectedMap.size;
+        markSynced();
+    });
+}
 
-    window.restoreBackup = function(backupId) {
-        if(confirm("⚠️ This will overwrite your CURRENT active company's scanned progress with this backup. Do you want to proceed?")) {
-            let backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
-            let target = backups.find(b => b.id === backupId);
-            if (target) {
-                scannedList = new Set(target.scannedData);
-                scanHistory = target.history || [];
-                updateSummaryUI();
-                saveSessionData(); 
-                document.getElementById('backup-modal').style.display = 'none';
-                showLog("Backup restored successfully!", "success");
-            }
+/** Real-time listener for scans of the active flow.
+    Because we use push(), every individual scan arrives as an atomic event –
+    no overwrites even when 4 devices scan concurrently. */
+function attachScansListener(flowKey) {
+    if (activeScansUnsubscribe) { activeScansUnsubscribe(); activeScansUnsubscribe = null; }
+    const scansRef = ref(db, `scannerV2/flows/${flowKey}/scans`);
+    activeScansUnsubscribe = onValue(scansRef, (snapshot) => {
+        /* Rebuild from the single source of truth */
+        scannedList = new Set();
+        scanHistory = [];
+        if (snapshot.exists()) {
+            /* Firebase push-keys are chronologically ordered – preserve order */
+            Object.entries(snapshot.val()).forEach(([, scan]) => {
+                scannedList.add(scan.id);
+                scanHistory.push({ id: scan.id, time: scan.time, orderId: scan.orderId || '', device: scan.device || '?' });
+            });
+            scanHistory.forEach((item, i) => { item.number = i + 1; });
         }
-    };
+        updateSummaryUI();
+        markSynced();
+    });
+}
 
-    function saveSessionData() {
-        allFlows[activeFlowName] = {
-            expected: Object.fromEntries(expectedMap), 
-            scanned: Array.from(scannedList),
-            history: scanHistory
-        };
-        const dataToSave = { active: activeFlowName, flows: allFlows };
-        
-        set(ref(db, 'warehouseScannerData'), dataToSave)
-            .catch((error) => { showLog("Cloud Save Error: Check Firebase Rules!", "error"); console.error(error); });
-    }
+/* ══════════════════════════════════════════
+   FLOW MANAGEMENT
+   ══════════════════════════════════════════ */
 
-    function loadSessionData() {
-        const dbRef = ref(db);
-        get(child(dbRef, `warehouseScannerData`)).then((snapshot) => {
-            if (snapshot.exists()) {
-                const parsed = snapshot.val();
-                allFlows = parsed.flows || {};
-                activeFlowName = parsed.active || Object.keys(allFlows)[0];
-            } 
-            
-            if (Object.keys(allFlows).length === 0) {
-                allFlows = { 'Default Company': { expected: {}, scanned: [], history: [] } };
-                activeFlowName = 'Default Company';
-            }
-            
-            document.getElementById('cloud-status').innerText = "✅ Cloud Connected";
-            refreshFlowDropdown();
-            loadFlowIntoMemory(activeFlowName);
-        }).catch((error) => {
-            document.getElementById('cloud-status').style.background = "#f8d7da";
-            document.getElementById('cloud-status').style.color = "#721c24";
-            document.getElementById('cloud-status').innerText = "❌ Database Locked (Check Rules)";
+function refreshFlowDropdown() {
+    const sel = document.getElementById('flow-selector');
+    const prev = sel.value;
+    sel.innerHTML = '';
+    Object.entries(allFlowKeys).forEach(([key, name]) => {
+        const opt = document.createElement('option');
+        opt.value = key; opt.text = name;
+        if (key === activeFlowKey) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    if (prev && allFlowKeys[prev]) sel.value = prev;
+}
+
+function loadFlowIntoMemory(flowKey, flowName) {
+    activeFlowKey  = flowKey;
+    activeFlowName = flowName || allFlowKeys[flowKey] || flowKey;
+
+    /* Reset local state immediately */
+    expectedMap = new Map();
+    scannedList = new Set();
+    scanHistory = [];
+
+    document.getElementById('adding-target-text').innerText = activeFlowName;
+    document.getElementById('active-flow-label').innerText  = 'Target: ' + activeFlowName.toUpperCase();
+    document.getElementById('total-expected').innerText = '…';
+    updateSummaryUI();
+
+    /* Attach fresh real-time listeners */
+    attachExpectedListener(flowKey);
+    attachScansListener(flowKey);
+
+    document.getElementById('scanner-input').focus();
+}
+
+window.switchFlow = function() {
+    const newKey = document.getElementById('flow-selector').value;
+    if (newKey === activeFlowKey) return;
+    loadFlowIntoMemory(newKey, allFlowKeys[newKey]);
+};
+
+window.createNewFlow = function() {
+    const name = prompt('Enter a name for the new company:');
+    if (!name || !name.trim()) return;
+    const clean = name.trim();
+    const key   = sanitizeKey(clean);
+    if (allFlowKeys[key]) { alert('A company with this name already exists!'); return; }
+    set(ref(db, `scannerV2/flowList/${key}`), clean)
+        .then(() => {
+            document.getElementById('flow-selector').value = key;
+            loadFlowIntoMemory(key, clean);
         });
+};
+
+window.deleteCurrentFlow = function() {
+    if (Object.keys(allFlowKeys).length <= 1) { alert('Cannot delete the last company.'); return; }
+    if (!confirm(`⚠️ Delete company "${activeFlowName}" permanently from the cloud?`)) return;
+    remove(ref(db, `scannerV2/flowList/${activeFlowKey}`));
+    remove(ref(db, `scannerV2/flows/${activeFlowKey}`));
+    /* listenToFlowList will auto-refresh the dropdown and load a different flow */
+};
+
+/* ══════════════════════════════════════════
+   SCANNING – push() per scan for concurrency safety
+   ══════════════════════════════════════════ */
+
+function processScannedId(scannedId) {
+    if (!scannedId) return;
+
+    if (scannedList.has(scannedId)) {
+        triggerDuplicateLockout(scannedId);
+        return;
+    }
+    if (!expectedMap.has(scannedId)) {
+        triggerInvalidLockout(scannedId);
+        return;
     }
 
-    function flashScreenGreen() {
-        const flash = document.getElementById('flash-overlay');
-        flash.style.opacity = '1'; flash.style.display = 'block';
-        setTimeout(() => { flash.style.opacity = '0'; }, 100);
-        setTimeout(() => { flash.style.display = 'none'; }, 300); 
-    }
+    /* Optimistic add to prevent a double-scan before Firebase responds */
+    scannedList.add(scannedId);
 
-    window.startCamera = function() {
-        document.getElementById('camera-modal').style.display = 'block';
-        html5QrCode = new Html5Qrcode("reader");
-        const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+    const now  = new Date();
+    const time = now.toLocaleTimeString() + ' on ' + now.toLocaleDateString();
+    const scanRecord = {
+        id:      scannedId,
+        time:    time,
+        orderId: expectedMap.get(scannedId) || '',
+        device:  DEVICE_ID   /* ← tag which device scanned it */
+    };
 
-        html5QrCode.start({ facingMode: "environment" }, config, onCameraScanSuccess)
-        .catch((err) => {
-            alert("Camera Error: Ensure you are on HTTPS and have granted camera permissions.\n" + err);
-            window.stopCamera();
+    /* push() is atomic – no overwrite risk with concurrent devices */
+    push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), scanRecord)
+        .then(() => {
+            playSound('success');
+            flashScreenGreen();
+            showLog(`✅ SUCCESS [${DEVICE_ID}]: ${scannedId} logged.`, 'success');
+        })
+        .catch(() => {
+            scannedList.delete(scannedId); /* rollback optimistic add */
+            showLog('❌ Network error – scan NOT saved. Retry!', 'warning');
         });
-    };
+}
 
-    window.stopCamera = function() {
-        if (html5QrCode) {
-            html5QrCode.stop().then(() => {
-                html5QrCode.clear();
-                document.getElementById('camera-modal').style.display = 'none';
-            }).catch(err => { console.error("Failed to stop camera", err); });
-        } else {
-            document.getElementById('camera-modal').style.display = 'none';
-        }
-    };
+document.getElementById('scanner-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        processScannedId(this.value.trim());
+        this.value = '';
+    }
+});
 
-    function onCameraScanSuccess(decodedText) {
-        if (isCameraPaused) return; 
-        processScannedId(decodedText);
-        
+/* ── Modals ── */
+function triggerDuplicateLockout(id) {
+    isCameraPaused = true; playSound('duplicate');
+    document.getElementById('scanner-input').disabled = true;
+    document.getElementById('duplicate-id-text').innerText = id;
+    document.getElementById('duplicate-modal').style.display = 'block';
+}
+function triggerInvalidLockout(id) {
+    isCameraPaused = true; playSound('invalid');
+    document.getElementById('scanner-input').disabled = true;
+    document.getElementById('invalid-id-text').innerText = id;
+    document.getElementById('invalid-modal').style.display = 'block';
+}
+window.resumeScanning = function(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+    const inp = document.getElementById('scanner-input');
+    inp.disabled = false; inp.value = ''; inp.focus();
+    isCameraPaused = false;
+};
+
+/* ── Camera ── */
+window.startCamera = function() {
+    document.getElementById('camera-modal').style.display = 'block';
+    html5QrCode = new Html5Qrcode('reader');
+    html5QrCode.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 150 } }, (decoded) => {
+        if (isCameraPaused) return;
+        processScannedId(decoded);
         isCameraPaused = true;
         setTimeout(() => {
-            if(document.getElementById('duplicate-modal').style.display !== 'block' && 
-               document.getElementById('invalid-modal').style.display !== 'block') {
+            if (!document.getElementById('duplicate-modal').style.display !== 'block' &&
+                !document.getElementById('invalid-modal').style.display !== 'block') {
                 isCameraPaused = false;
             }
         }, 1500);
+    }).catch(err => { alert('Camera error: ' + err); window.stopCamera(); });
+};
+window.stopCamera = function() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => { html5QrCode.clear(); document.getElementById('camera-modal').style.display = 'none'; })
+        .catch(() => {});
+    } else {
+        document.getElementById('camera-modal').style.display = 'none';
     }
+};
 
-    function processScannedId(scannedId) {
-        if (scannedId === '') return; 
+/* ══════════════════════════════════════════
+   EXPECTED IDs – still a set() (not concurrent-sensitive)
+   ══════════════════════════════════════════ */
 
-        if (scannedList.has(scannedId)) {
-            triggerDuplicateLockout(scannedId);
-            return; 
-        } 
-        else if (expectedMap.has(scannedId)) {
-            scannedList.add(scannedId);
-            const now = new Date();
-            const timestamp = now.toLocaleTimeString() + " on " + now.toLocaleDateString();
-            scanHistory.push({ number: scannedList.size, id: scannedId, time: timestamp });
+function saveExpectedData() {
+    if (!activeFlowKey) return;
+    const obj = {};
+    expectedMap.forEach((oid, tid) => { obj[tid] = oid || ''; });
+    set(ref(db, `scannerV2/flows/${activeFlowKey}/expected`),
+        Object.keys(obj).length ? obj : null);
+}
 
-            playSound('success'); 
-            flashScreenGreen(); 
-            
-            showLog(`SUCCESS: ${scannedId} logged.`, "success");
-            updateSummaryUI(); 
-            saveSessionData(); 
-        } 
-        else {
-            triggerInvalidLockout(scannedId);
-            return;
+function processRawText(text, sourceName) {
+    const lines = text.split('\n');
+    const useDateFilter = document.getElementById('use-date-filter').checked;
+    const targetDate    = document.getElementById('target-ship-date').value;
+    let added = 0, skipped = 0;
+
+    lines.forEach(line => {
+        if (!line.trim()) return;
+        const cols = line.split(/[,\t]/);
+        let tid = '', oid = '', dateStr = '';
+
+        if (cols.length >= 3) {
+            oid     = cols[0].trim().replace(/^"|"$/g, '');
+            tid     = cols[1].trim().replace(/^"|"$/g, '');
+            dateStr = cols[2].trim().replace(/^"|"$/g, '');
+        } else if (cols.length === 2) {
+            oid = cols[0].trim().replace(/^"|"$/g, '');
+            tid = cols[1].trim().replace(/^"|"$/g, '');
+        } else {
+            tid = line.trim().replace(/^"|"$/g, '');
         }
-    }
 
-    document.getElementById('scanner-input').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            processScannedId(this.value.trim());
-            this.value = ''; 
+        if (!tid || /^(tracking.?id)$/i.test(tid)) return;
+
+        if (useDateFilter && dateStr) {
+            if (dateStr.substring(0, 10) !== targetDate) { skipped++; return; }
         }
+
+        if (!expectedMap.has(tid)) { expectedMap.set(tid, oid); added++; }
     });
 
-    function refreshFlowDropdown() {
-        const selector = document.getElementById('flow-selector');
-        selector.innerHTML = '';
-        Object.keys(allFlows).forEach(flowName => {
-            const option = document.createElement('option');
-            option.value = flowName; option.text = flowName;
-            if (flowName === activeFlowName) option.selected = true;
-            selector.appendChild(option);
-        });
+    document.getElementById('total-expected').innerText = expectedMap.size;
+    showLog(`Added ${added} IDs from ${sourceName}.` + (skipped ? ` (Skipped ${skipped} date-filtered)` : ''), 'success');
+    document.getElementById('scanner-input').focus();
+    saveExpectedData();
+}
+
+function processReverseRawText(text, sourceName) {
+    const lines = text.split('\n');
+    let removed = 0;
+    lines.forEach(line => {
+        if (!line.trim()) return;
+        const cols = line.split(/[,\t]/);
+        let tid = cols.length >= 2 ? cols[1].trim() : line.trim();
+        tid = tid.replace(/^"|"$/g, '');
+        if (!tid || /^(tracking.?id)$/i.test(tid)) return;
+        if (expectedMap.has(tid)) { expectedMap.delete(tid); removed++; }
+    });
+    document.getElementById('total-expected').innerText = expectedMap.size;
+    showLog(`Removed ${removed} IDs using ${sourceName}.`, 'warning');
+    document.getElementById('scanner-input').focus();
+    saveExpectedData();
+}
+
+window.addExpectedIDsFromPaste = function() {
+    const text = document.getElementById('expected-ids').value;
+    if (!text.trim()) { showLog('Please paste some IDs first.', 'warning'); return; }
+    processRawText(text, 'Pasted Data');
+    document.getElementById('expected-ids').value = '';
+};
+window.handleFileUpload = function(event) {
+    const f = event.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = e => { processRawText(e.target.result, f.name); event.target.value = ''; };
+    r.readAsText(f);
+};
+window.handleReverseFileUpload = function(event) {
+    const f = event.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = e => { processReverseRawText(e.target.result, f.name); event.target.value = ''; };
+    r.readAsText(f);
+};
+
+window.resetCurrentFlow = function() {
+    if (!confirm(`⚠️ Clear ALL scanned & expected data for "${activeFlowName}"? Backups are safe.`)) return;
+    expectedMap.clear(); scannedList.clear(); scanHistory = [];
+    remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
+    remove(ref(db, `scannerV2/flows/${activeFlowKey}/expected`));
+    document.getElementById('total-expected').innerText = '0';
+    document.getElementById('expected-ids').value = '';
+    updateSummaryUI();
+    showLog(`Data for "${activeFlowName}" cleared from cloud.`, 'warning');
+};
+
+/* ══════════════════════════════════════════
+   UI UPDATE
+   ══════════════════════════════════════════ */
+
+function updateSummaryUI() {
+    document.getElementById('scanned-count').innerText = scannedList.size;
+    document.getElementById('download-btn').disabled   = (scanHistory.length === 0);
+    const tbody = document.getElementById('history-body');
+    tbody.innerHTML = '';
+    for (let i = scanHistory.length - 1; i >= 0; i--) {
+        const rec = scanHistory[i];
+        const isNew = i === scanHistory.length - 1;
+        const row = document.createElement('tr');
+        if (isNew) row.className = 'new-row';
+        row.innerHTML = `
+            <td>${rec.number}</td>
+            <td>${rec.orderId || '—'}</td>
+            <td><strong>${rec.id}</strong></td>
+            <td>${rec.time}</td>
+            <td><span style="background:#e9ecef;border-radius:4px;padding:2px 6px;font-size:12px;">${rec.device || '?'}</span></td>
+        `;
+        tbody.appendChild(row);
     }
+}
 
-    function loadFlowIntoMemory(flowName) {
-        activeFlowName = flowName;
-        const flowData = allFlows[flowName];
-        
-        expectedMap = new Map();
-        if (Array.isArray(flowData.expected)) {
-            flowData.expected.forEach(id => expectedMap.set(id, ""));
-        } else if (flowData.expected && typeof flowData.expected === 'object') {
-            Object.entries(flowData.expected).forEach(([tid, oid]) => expectedMap.set(tid, oid));
-        }
+/* ══════════════════════════════════════════
+   MISSING CHECK
+   ══════════════════════════════════════════ */
 
-        scannedList = new Set(flowData.scanned || []);
-        scanHistory = flowData.history || [];
+window.checkRemaining = function() {
+    if (!expectedMap.size) { alert("You haven't loaded an expected list yet!"); return; }
+    currentMissingIds = [];
+    const container = document.getElementById('missing-list-container');
+    container.innerHTML = '';
 
-        document.getElementById('adding-target-text').innerText = flowName;
-        document.getElementById('active-flow-label').innerText = "Target: " + flowName.toUpperCase();
-        document.getElementById('total-expected').innerText = expectedMap.size;
-        
-        updateSummaryUI();
-        document.getElementById('scanner-input').focus();
+    expectedMap.forEach((orderId, tid) => {
+        if (scannedList.has(tid)) return;
+        currentMissingIds.push(tid);
+        const link = orderId ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${orderId}` : '';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="text-align:center;border-bottom:1px solid #ddd;">
+                ${link ? `<input type="checkbox" class="missing-checkbox" data-link="${link}" onchange="updateBulkCopyButton()">` : ''}
+            </td>
+            <td style="border-bottom:1px solid #ddd;"><strong>${tid}</strong></td>
+            <td style="border-bottom:1px solid #ddd;">${orderId || '<span style="color:#999;font-size:12px;">Unknown</span>'}</td>
+            <td style="text-align:right;border-bottom:1px solid #ddd;">
+                ${link
+                    ? `<a href="#" onclick="copySingleLink('${link}',this);return false;" style="color:#0056b3;font-weight:bold;text-decoration:none;">📋 Copy Link</a>`
+                    : '<span style="color:#999;font-size:12px;">No Link</span>'}
+            </td>`;
+        container.appendChild(tr);
+    });
+
+    if (!currentMissingIds.length) {
+        playSound('success'); flashScreenGreen();
+        alert(`🎉 CONGRATULATIONS!\nAll parcels for "${activeFlowName}" have been scanned!`);
+    } else {
+        document.getElementById('missing-flow-name').innerText = activeFlowName;
+        updateBulkCopyButton();
+        document.getElementById('missing-modal').style.display = 'block';
     }
+};
 
-    window.createNewFlow = function() {
-        const name = prompt("Enter a name for the new company:");
-        if (!name || name.trim() === '') return;
-        const cleanName = name.trim();
-        if (allFlows[cleanName]) { alert("A company with this name already exists!"); return; }
-        
-        saveSessionData(); 
-        allFlows[cleanName] = { expected: {}, scanned: [], history: [] }; 
-        refreshFlowDropdown();
-        document.getElementById('flow-selector').value = cleanName;
-        loadFlowIntoMemory(cleanName);
-        saveSessionData(); 
-        showLog(`Switched to company: ${cleanName}`, "success");
-    };
+window.updateBulkCopyButton = function() {
+    const cbs  = document.querySelectorAll('.missing-checkbox');
+    const n    = Array.from(cbs).filter(c => c.checked).length;
+    document.getElementById('copy-bulk-btn').innerText = n
+        ? `📋 Copy ${n} Selected Links` : '📋 Copy All Links';
+};
 
-    window.switchFlow = function() {
-        saveSessionData(); 
-        const newFlow = document.getElementById('flow-selector').value;
-        loadFlowIntoMemory(newFlow);
-    };
-
-    window.deleteCurrentFlow = function() {
-        if (Object.keys(allFlows).length <= 1) { alert("Cannot delete the last remaining company."); return; }
-        if (confirm(`⚠️ Delete company "${activeFlowName}" permanently?`)) {
-            delete allFlows[activeFlowName];
-            activeFlowName = Object.keys(allFlows)[0]; 
-            refreshFlowDropdown();
-            loadFlowIntoMemory(activeFlowName);
-            saveSessionData();
-        }
-    };
-
-    function playSound(type) {
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            
-            if (type === 'success') {
-                oscillator.type = 'sine'; 
-                oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); 
-                oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-                gainNode.gain.setValueAtTime(2.0, audioCtx.currentTime); 
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2); 
-                oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
-                oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.2);
-            } else {
-                oscillator.type = 'sawtooth'; 
-                oscillator.frequency.setValueAtTime(type === 'duplicate' ? 200 : 400, audioCtx.currentTime); 
-                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); 
-                oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
-                oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.4); 
-            }
-        } catch(e) {}
-    }
-
-    function triggerDuplicateLockout(id) {
-        isCameraPaused = true; playSound('duplicate');
-        document.getElementById('scanner-input').disabled = true;
-        document.getElementById('duplicate-id-text').innerText = id;
-        document.getElementById('duplicate-modal').style.display = 'block';
-    }
-
-    function triggerInvalidLockout(id) {
-        isCameraPaused = true; playSound('invalid');
-        document.getElementById('scanner-input').disabled = true;
-        document.getElementById('invalid-id-text').innerText = id;
-        document.getElementById('invalid-modal').style.display = 'block';
-    }
-
-    window.resumeScanning = function(modalId) {
-        document.getElementById(modalId).style.display = 'none';
-        const scannerInput = document.getElementById('scanner-input');
-        scannerInput.disabled = false; scannerInput.value = ''; scannerInput.focus();
-        isCameraPaused = false; 
-    };
-
-    // --- POPULATE THE NEW TABLE ---
-    window.checkRemaining = function() {
-        if (expectedMap.size === 0) { alert("You haven't loaded an expected list for this company yet!"); return; }
-        
-        currentMissingIds = [];
-        const missingContainer = document.getElementById('missing-list-container');
-        missingContainer.innerHTML = ''; // Clear old rows
-
-        expectedMap.forEach((orderId, trackingId) => {
-            if (!scannedList.has(trackingId)) {
-                currentMissingIds.push(trackingId);
-                
-                let link = orderId ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${orderId}` : "";
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="text-align: center; border-bottom: 1px solid #ddd;">
-                        ${link ? `<input type="checkbox" class="missing-checkbox" data-link="${link}" onchange="updateBulkCopyButton()">` : ''}
-                    </td>
-                    <td style="border-bottom: 1px solid #ddd;"><strong>${trackingId}</strong></td>
-                    <td style="border-bottom: 1px solid #ddd;">${orderId || '<span style="color:#999;font-size:12px;">Unknown</span>'}</td>
-                    <td style="text-align: right; border-bottom: 1px solid #ddd;">
-                        ${link ? `<a href="#" onclick="copySingleLink('${link}', this); return false;" style="color: #0056b3; font-weight: bold; text-decoration: none;">📋 Copy Link</a>` : '<span style="color:#999; font-size:12px;">No Link</span>'}
-                    </td>
-                `;
-                missingContainer.appendChild(tr);
-            }
-        });
-
-        if (currentMissingIds.length === 0) {
-            playSound('success'); flashScreenGreen();
-            alert(`🎉 CONGRATULATIONS! \nYou have successfully scanned 100% of the parcels for ${activeFlowName}.`);
-        } else {
-            document.getElementById('missing-flow-name').innerText = activeFlowName;
-            updateBulkCopyButton(); // Set initial button state
-            document.getElementById('missing-modal').style.display = 'block';
-        }
-    };
-
-    window.updateBulkCopyButton = function() {
-        const checkboxes = document.querySelectorAll('.missing-checkbox');
-        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+window.copyBulkMissingLinks = function() {
+    const cbs     = document.querySelectorAll('.missing-checkbox');
+    const checked = Array.from(cbs).filter(c => c.checked);
+    const links   = (checked.length ? checked : Array.from(cbs)).map(c => c.getAttribute('data-link'));
+    if (!links.length) { alert('No links to copy.'); return; }
+    navigator.clipboard.writeText(links.join('\n')).then(() => {
         const btn = document.getElementById('copy-bulk-btn');
+        const orig = btn.innerText;
+        btn.innerText = '✅ Copied!';
+        setTimeout(() => { btn.innerText = orig; }, 2000);
+    }).catch(() => { alert('Copy failed – ensure HTTPS.'); });
+};
 
-        if (checkedCount > 0) {
-            btn.innerText = `📋 Copy ${checkedCount} Selected Links`;
-        } else {
-            btn.innerText = "📋 Copy All Links";
-        }
-    };
+window.copySingleLink = function(link, el) {
+    navigator.clipboard.writeText(link).then(() => {
+        const orig = el.innerText; el.innerText = '✅ Copied'; el.style.color = '#28a745';
+        setTimeout(() => { el.innerText = orig; el.style.color = '#0056b3'; }, 2000);
+    }).catch(() => { alert('Copy failed – ensure HTTPS.'); });
+};
 
-    window.copyBulkMissingLinks = function() {
-        const checkboxes = document.querySelectorAll('.missing-checkbox');
-        const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
-        let linksToCopy = [];
+/* ══════════════════════════════════════════
+   DOWNLOAD
+   ══════════════════════════════════════════ */
 
-        if (checkedBoxes.length > 0) {
-            linksToCopy = checkedBoxes.map(cb => cb.getAttribute('data-link'));
-        } else {
-            linksToCopy = Array.from(checkboxes).map(cb => cb.getAttribute('data-link'));
-        }
+window.downloadExcel = function() {
+    let csv = 'Number,Order ID,Tracking ID,Time Scanned,Device\n';
+    scanHistory.forEach(r => {
+        csv += `"${r.number}","${r.orderId}","${r.id}","${r.time}","${r.device || ''}"\n`;
+    });
+    triggerDownload(csv, `Scanned_Log_${sanitizeKey(activeFlowName)}.csv`);
+};
 
-        if (linksToCopy.length === 0) {
-            alert("No links available to copy.");
-            return;
-        }
+window.downloadMissingExcel = function() {
+    let csv = 'Missing Tracking ID,Order ID,Print Link\n';
+    currentMissingIds.forEach(tid => {
+        const oid  = expectedMap.get(tid) || '';
+        const link = oid ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${oid}` : '';
+        csv += `"${tid}","${oid}","${link}"\n`;
+    });
+    triggerDownload(csv, `MISSING_Parcels_${sanitizeKey(activeFlowName)}.csv`);
+};
 
-        navigator.clipboard.writeText(linksToCopy.join('\n')).then(() => {
-            const btn = document.getElementById('copy-bulk-btn');
-            const originalText = btn.innerText;
-            btn.innerText = "✅ Copied to Clipboard!";
-            setTimeout(() => { btn.innerText = originalText; }, 2000);
-        }).catch(err => {
-            alert("Failed to copy links. Ensure you are using HTTPS.");
-            console.error(err);
+function triggerDownload(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+/* ══════════════════════════════════════════
+   BACKUPS  (localStorage – per device, restores to cloud)
+   ══════════════════════════════════════════ */
+
+window.createBackup = function() {
+    if (!scannedList.size) alert('Warning: nothing scanned yet.');
+    if (scanHistory.length) downloadExcel();
+
+    let backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
+    backups.push({
+        id:           Date.now(),
+        time:         new Date().toLocaleString(),
+        flow:         activeFlowName,
+        scannedCount: scannedList.size,
+        history:      scanHistory
+    });
+    if (backups.length > 20) backups.shift();
+    localStorage.setItem('scannerBackups', JSON.stringify(backups));
+    showLog('Backup downloaded & saved to browser history!', 'success');
+};
+
+window.showBackups = function() {
+    const backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
+    const list    = document.getElementById('backup-list');
+    list.innerHTML = '';
+    if (!backups.length) {
+        list.innerHTML = '<p style="text-align:center;color:#666;">No backups saved yet.</p>';
+    } else {
+        [...backups].reverse().forEach(b => {
+            const div = document.createElement('div');
+            div.style.cssText = 'border-bottom:1px solid #ddd;padding:12px 0;';
+            div.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <strong>${b.time}</strong><br>
+                        <span style="font-size:14px;color:#555;">Company: ${b.flow}</span><br>
+                        <span style="color:#28a745;font-weight:bold;font-size:14px;">✓ ${b.scannedCount} items</span>
+                    </div>
+                    <button onclick="restoreBackup(${b.id})"
+                        style="background:#17a2b8;color:white;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;font-weight:bold;">
+                        Restore to Cloud
+                    </button>
+                </div>`;
+            list.appendChild(div);
         });
-    };
+    }
+    document.getElementById('backup-modal').style.display = 'block';
+};
 
-    window.copySingleLink = function(link, el) {
-        navigator.clipboard.writeText(link).then(() => {
-            const originalText = el.innerText;
-            el.innerText = "✅ Copied";
-            el.style.color = "#28a745";
-            setTimeout(() => {
-                el.innerText = originalText;
-                el.style.color = "#0056b3";
-            }, 2000);
-        }).catch(err => {
-            alert("Failed to copy link. Ensure you are using HTTPS.");
+window.restoreBackup = async function(backupId) {
+    if (!confirm('⚠️ This will REPLACE all cloud scans for the active company with this backup.\nAll other devices will update instantly. Proceed?')) return;
+
+    const backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
+    const target  = backups.find(b => b.id === backupId);
+    if (!target) return;
+
+    setCloudStatus('Restoring…', 'syncing');
+    /* Delete existing cloud scans then re-push each record */
+    await remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
+
+    for (const rec of (target.history || [])) {
+        await push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), {
+            id:      rec.id,
+            time:    rec.time,
+            orderId: expectedMap.get(rec.id) || rec.orderId || '',
+            device:  rec.device || 'Restored'
         });
-    };
-
-    window.addExpectedIDsFromPaste = function() {
-        const text = document.getElementById('expected-ids').value;
-        if (text.trim() === '') { showLog("Please paste some IDs into the box first.", "warning"); return; }
-        processRawText(text, "Pasted Data");
-        document.getElementById('expected-ids').value = ''; 
-    };
-
-    window.handleFileUpload = function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const text = e.target.result;
-            processRawText(text, file.name); 
-            event.target.value = ''; 
-        };
-        reader.readAsText(file);
-    };
-
-    window.handleReverseFileUpload = function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const text = e.target.result;
-            processReverseRawText(text, file.name); 
-            event.target.value = ''; 
-        };
-        reader.readAsText(file);
-    };
-
-    function processRawText(text, sourceName) {
-        const lines = text.split('\n');
-        const useDateFilter = document.getElementById('use-date-filter').checked;
-        const targetDate = document.getElementById('target-ship-date').value; 
-        let addedCount = 0; let skippedDueToDate = 0;
-
-        lines.forEach(line => {
-            if (line.trim() === '') return;
-            const columns = line.split(/[,\t]/);
-            let trackingId = ""; let shipDateStr = ""; let orderId = "";
-
-            if (columns.length >= 3) {
-                orderId = columns[0].trim().replace(/^"|"$/g, '');
-                trackingId = columns[1].trim().replace(/^"|"$/g, '');
-                shipDateStr = columns[2].trim().replace(/^"|"$/g, '');
-            } else if (columns.length === 2) {
-                orderId = columns[0].trim().replace(/^"|"$/g, '');
-                trackingId = columns[1].trim().replace(/^"|"$/g, '');
-            } else {
-                trackingId = line.trim().replace(/^"|"$/g, '');
-            }
-
-            if (trackingId.toLowerCase() === 'tracking-id' || trackingId.toLowerCase() === 'tracking id' || trackingId === '') return;
-
-            if (useDateFilter && shipDateStr) {
-                const parsedDate = shipDateStr.substring(0, 10);
-                if (parsedDate !== targetDate) { skippedDueToDate++; return; }
-            }
-
-            if (trackingId && !expectedMap.has(trackingId)) {
-                expectedMap.set(trackingId, orderId);
-                addedCount++;
-            }
-        });
-        
-        document.getElementById('total-expected').innerText = expectedMap.size;
-        let message = `Added ${addedCount} IDs from ${sourceName}.`;
-        if (skippedDueToDate > 0) message += ` (Skipped ${skippedDueToDate} bad dates).`;
-        
-        showLog(message, "success");
-        document.getElementById('scanner-input').focus(); 
-        saveSessionData(); 
     }
 
-    function processReverseRawText(text, sourceName) {
-        const lines = text.split('\n');
-        let removedCount = 0;
+    document.getElementById('backup-modal').style.display = 'none';
+    showLog('Backup restored to cloud – all devices updated!', 'success');
+};
 
-        lines.forEach(line => {
-            if (line.trim() === '') return;
-            const columns = line.split(/[,\t]/);
-            let trackingId = "";
-
-            if (columns.length >= 3) { trackingId = columns[1].trim(); } 
-            else if (columns.length === 2) { trackingId = columns[1].trim(); } 
-            else { trackingId = line.trim(); }
-
-            trackingId = trackingId.replace(/^"|"$/g, '');
-            if (trackingId.toLowerCase() === 'tracking-id' || trackingId.toLowerCase() === 'tracking id' || trackingId === '') return;
-
-            if (expectedMap.has(trackingId)) {
-                expectedMap.delete(trackingId);
-                removedCount++;
-            }
-        });
-        
-        document.getElementById('total-expected').innerText = expectedMap.size;
-        showLog(`Removed ${removedCount} expected IDs using ${sourceName}.`, "warning");
-        document.getElementById('scanner-input').focus(); 
-        saveSessionData(); 
-    }
-
-    window.resetCurrentFlow = function() {
-        if (confirm(`⚠️ Are you sure you want to clear the previous day's scanned files for company "${activeFlowName}"? (The company name structure and your backups will NOT be deleted)`)) {
-            expectedMap.clear(); scannedList.clear(); scanHistory = [];
-            document.getElementById('total-expected').innerText = "0";
-            document.getElementById('expected-ids').value = '';
-            updateSummaryUI(); saveSessionData(); 
-            showLog(`Previous day data for "${activeFlowName}" has been cleared.`, "warning");
-        }
-    };
-
-    function updateSummaryUI() {
-        document.getElementById('scanned-count').innerText = scannedList.size;
-        document.getElementById('download-btn').disabled = (scanHistory.length === 0);
-        const tbody = document.getElementById('history-body');
-        tbody.innerHTML = ''; 
-        for (let i = scanHistory.length - 1; i >= 0; i--) {
-            let oId = expectedMap.get(scanHistory[i].id) || "-";
-            const row = `<tr><td>${scanHistory[i].number}</td><td>${oId}</td><td><strong>${scanHistory[i].id}</strong></td><td>${scanHistory[i].time}</td></tr>`;
-            tbody.innerHTML += row;
-        }
-    }
-
-    window.downloadExcel = function() {
-        let csvContent = "Number,Order ID,Tracking ID,Time Scanned\n";
-        scanHistory.forEach(record => { 
-            let oId = expectedMap.get(record.id) || "";
-            csvContent += `"${record.number}","${oId}","${record.id}","${record.time}"\n`; 
-        });
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        const safeFlowName = activeFlowName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        link.setAttribute("download", `Scanned_Log_${safeFlowName}.csv`); 
-        link.style.display = 'none'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    };
-
-    window.downloadMissingExcel = function() {
-        let csvContent = "Missing Tracking ID,Missing Order ID,Print Link\n";
-        currentMissingIds.forEach(id => { 
-            let oId = expectedMap.get(id) || "";
-            let link = oId ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${oId}` : "";
-            csvContent += `"${id}","${oId}","${link}"\n`; 
-        });
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        const safeFlowName = activeFlowName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        link.setAttribute("download", `MISSING_Parcels_${safeFlowName}.csv`); 
-        link.style.display = 'none'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    };
-
-    function showLog(message, type) {
-        const logBox = document.getElementById('log');
-        logBox.style.display = 'block'; logBox.innerText = message; logBox.className = type; 
-        setTimeout(() => { logBox.style.display = 'none'; }, 4000);
-    }
-
-    window.onload = function() { loadSessionData(); };
+/* ══════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════ */
+window.onload = function() {
+    setCloudStatus('Connecting…', 'syncing');
+    listenToFlowList();   /* kicks off everything via the onValue callback */
+};
 
 </script>
-
 </body>
 </html>
