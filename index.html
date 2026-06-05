@@ -105,11 +105,20 @@
         </div>
         <div style="max-height:350px;overflow-y:auto;background:#f8f9fa;">
             <table id="missing-table">
-                <thead><tr><th style="width:30px;text-align:center;">✓</th><th>Tracking ID</th><th>Order ID</th></tr></thead>
+                <thead style="position:sticky;top:0;background:#e9ecef;z-index:1;">
+                    <tr>
+                        <th style="width:30px;text-align:center;">✓</th>
+                        <th>Tracking ID</th>
+                        <th>Order ID</th>
+                    </tr>
+                </thead>
                 <tbody id="missing-list-container"></tbody>
             </table>
         </div>
-        <div class="button-group"><button class="btn-primary" onclick="downloadMissingExcel()">⬇️ Download List</button><button class="btn-secondary" onclick="resumeScanning('missing-modal')">Close</button></div>
+        <div class="button-group">
+            <button class="btn-primary" onclick="downloadMissingExcel()">⬇️ Download List</button>
+            <button class="btn-secondary" onclick="resumeScanning('missing-modal')">Close</button>
+        </div>
     </div>
 </div>
 
@@ -391,11 +400,9 @@ function processRawText(text, sourceName) {
     const targetDate    = document.getElementById('target-ship-date').value;
     let added = 0, skipped = 0;
 
-    // Detect if the current flow involves Seller Flex
     const isSellerFlex = activeFlowName.toLowerCase().includes('seller flex');
 
     if (isSellerFlex && lines.length > 0) {
-        // --- SELLER FLEX SPECIFIC LOGIC (Smart CSV Parsing) ---
         let headerIdx = 0;
         while (headerIdx < lines.length && !lines[headerIdx].trim()) headerIdx++;
         if (headerIdx >= lines.length) return;
@@ -403,7 +410,6 @@ function processRawText(text, sourceName) {
         const headerLine = lines[headerIdx];
         const delimiter = headerLine.includes('\t') ? '\t' : ',';
         
-        // Custom parser to safely handle commas inside quotes
         const parseLine = (line, delim) => {
             if (delim === '\t') return line.split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
             let res = [], inQ = false, curr = '';
@@ -418,8 +424,6 @@ function processRawText(text, sourceName) {
         };
 
         const headers = parseLine(headerLine, delimiter).map(h => h.toLowerCase());
-        
-        // Amazon specific column checks
         let orderIdIdx = headers.findIndex(h => h.includes('amazon-order-id') || h.includes('order-id') || h.includes('order id'));
         let trackingIdIdx = headers.findIndex(h => h.includes('tracking-id') || h.includes('tracking id'));
 
@@ -432,7 +436,6 @@ function processRawText(text, sourceName) {
 
                 if (!tid || /^(tracking.?id)$/i.test(tid)) continue;
                 
-                // For Seller Flex reports, we bypass the date filter since the download is usually date-specific
                 if (!expectedMap.has(tid)) { expectedMap.set(tid, oid); added++; }
             }
         } else {
@@ -441,7 +444,6 @@ function processRawText(text, sourceName) {
         }
 
     } else {
-        // --- STANDARD PREVIOUS LOGIC (For all other companies) ---
         lines.forEach(line => {
             if (!line.trim()) return;
             const cols = line.split(/[,\t]/);
@@ -533,32 +535,47 @@ window.updateBulkCopyButtons = function() {
 
 window.copyBulkLinks = function(type) {
     const cbs = Array.from(document.querySelectorAll('.missing-checkbox'));
-    const checked = cbs.filter(c => c.checked);
-    const targetElements = checked.length ? checked : cbs;
+    const anyChecked = cbs.some(c => c.checked);
+    const targetElements = anyChecked ? cbs.filter(c => c.checked) : cbs;
+    
     const attr = type === 'print' ? 'data-print-link' : 'data-order-link';
     const links = targetElements.map(el => el.getAttribute(attr)).filter(l => l && l.trim() !== '');
+    
     if (!links.length) { alert('No links to copy.'); return; }
+    
     navigator.clipboard.writeText(links.join('\n')).then(() => {
         const btn = document.getElementById(type === 'print' ? 'copy-print-btn' : 'copy-order-btn');
-        const orig = btn.innerText; btn.innerText = '✅ Copied!'; setTimeout(() => { btn.innerText = orig; }, 2000);
+        const orig = btn.innerText; 
+        btn.innerText = '✅ Copied!'; 
+        setTimeout(() => { btn.innerText = orig; }, 2000);
     }).catch(() => { alert('Copy failed – ensure HTTPS.'); });
 };
 
 window.checkRemaining = function() {
     if (!expectedMap.size) { alert("You haven't loaded an expected list yet!"); return; }
     currentMissingIds = []; const container = document.getElementById('missing-list-container'); container.innerHTML = '';
+    
     expectedMap.forEach((orderId, tid) => {
         if (scannedList.has(tid)) return;
         currentMissingIds.push(tid);
+        
         const printLink = orderId ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${orderId}` : '';
         const orderDetailLink = orderId ? `https://sellercentral.amazon.in/orders-v3/order/${orderId}` : '';
+        
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td style="text-align:center;border-bottom:1px solid #ddd;">${orderId ? `<input type="checkbox" class="missing-checkbox" data-print-link="${printLink}" data-order-link="${orderDetailLink}" onchange="updateBulkCopyButtons()">` : ''}</td>
-            <td style="border-bottom:1px solid #ddd;">${printLink ? `<a href="${printLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${tid}</a>` : `<strong>${tid}</strong>`}</td>
-            <td style="border-bottom:1px solid #ddd;">${orderId ? `<a href="${orderDetailLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${orderId}</a>` : '<span style="color:#999;font-size:12px;">Unknown</span>'}</td>`;
+            <td style="text-align:center;border-bottom:1px solid #ddd;">
+                ${orderId ? `<input type="checkbox" class="missing-checkbox" data-print-link="${printLink}" data-order-link="${orderDetailLink}" onchange="updateBulkCopyButtons()">` : ''}
+            </td>
+            <td style="border-bottom:1px solid #ddd;">
+                ${printLink ? `<a href="${printLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${tid}</a>` : `<strong>${tid}</strong>`}
+            </td>
+            <td style="border-bottom:1px solid #ddd;">
+                ${orderId ? `<a href="${orderDetailLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${orderId}</a>` : '<span style="color:#999;font-size:12px;">Unknown</span>'}
+            </td>`;
         container.appendChild(tr);
     });
+    
     if (!currentMissingIds.length) {
         playSound('success'); flashScreenGreen(); alert(`🎉 CONGRATULATIONS!\nAll parcels for "${activeFlowName}" have been scanned!`);
     } else {
