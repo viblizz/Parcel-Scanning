@@ -572,4 +572,338 @@ window.stopCamera = function() {
         html5QrCode.stop().then(() => { html5QrCode.clear(); document.getElementById('camera-modal').style.display = 'none'; })
         .catch(() => {});
     } else {
-        document
+        document.getElementById('camera-modal').style.display = 'none';
+    }
+};
+
+/* ══════════════════════════════════════════
+   EXPECTED IDs
+   ══════════════════════════════════════════ */
+
+function saveExpectedData() {
+    if (!activeFlowKey) return;
+    const obj = {};
+    expectedMap.forEach((oid, tid) => { obj[tid] = oid || ''; });
+    set(ref(db, `scannerV2/flows/${activeFlowKey}/expected`),
+        Object.keys(obj).length ? obj : null);
+}
+
+function processRawText(text, sourceName) {
+    const lines = text.split('\n');
+    const useDateFilter = document.getElementById('use-date-filter').checked;
+    const targetDate    = document.getElementById('target-ship-date').value;
+    let added = 0, skipped = 0;
+
+    lines.forEach(line => {
+        if (!line.trim()) return;
+        const cols = line.split(/[,\t]/);
+        let tid = '', oid = '', dateStr = '';
+
+        if (cols.length >= 3) {
+            oid     = cols[0].trim().replace(/^"|"$/g, '');
+            tid     = cols[1].trim().replace(/^"|"$/g, '');
+            dateStr = cols[2].trim().replace(/^"|"$/g, '');
+        } else if (cols.length === 2) {
+            oid = cols[0].trim().replace(/^"|"$/g, '');
+            tid = cols[1].trim().replace(/^"|"$/g, '');
+        } else {
+            tid = line.trim().replace(/^"|"$/g, '');
+        }
+
+        if (!tid || /^(tracking.?id)$/i.test(tid)) return;
+
+        if (useDateFilter && dateStr) {
+            if (dateStr.substring(0, 10) !== targetDate) { skipped++; return; }
+        }
+
+        if (!expectedMap.has(tid)) { expectedMap.set(tid, oid); added++; }
+    });
+
+    document.getElementById('total-expected').innerText = expectedMap.size;
+    showLog(`Added ${added} IDs from ${sourceName}.` + (skipped ? ` (Skipped ${skipped} date-filtered)` : ''), 'success');
+    document.getElementById('scanner-input').focus();
+    saveExpectedData();
+}
+
+function processReverseRawText(text, sourceName) {
+    const lines = text.split('\n');
+    let removed = 0;
+    lines.forEach(line => {
+        if (!line.trim()) return;
+        const cols = line.split(/[,\t]/);
+        let tid = cols.length >= 2 ? cols[1].trim() : line.trim();
+        tid = tid.replace(/^"|"$/g, '');
+        if (!tid || /^(tracking.?id)$/i.test(tid)) return;
+        if (expectedMap.has(tid)) { expectedMap.delete(tid); removed++; }
+    });
+    document.getElementById('total-expected').innerText = expectedMap.size;
+    showLog(`Removed ${removed} IDs using ${sourceName}.`, 'warning');
+    document.getElementById('scanner-input').focus();
+    saveExpectedData();
+}
+
+window.addExpectedIDsFromPaste = function() {
+    const text = document.getElementById('expected-ids').value;
+    if (!text.trim()) { showLog('Please paste some IDs first.', 'warning'); return; }
+    processRawText(text, 'Pasted Data');
+    document.getElementById('expected-ids').value = '';
+};
+window.handleFileUpload = function(event) {
+    const f = event.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = e => { processRawText(e.target.result, f.name); event.target.value = ''; };
+    r.readAsText(f);
+};
+window.handleReverseFileUpload = function(event) {
+    const f = event.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = e => { processReverseRawText(e.target.result, f.name); event.target.value = ''; };
+    r.readAsText(f);
+};
+
+window.resetCurrentFlow = function() {
+    if (!confirm(`⚠️ Clear ALL scanned & expected data for "${activeFlowName}"? Backups are safe.`)) return;
+    expectedMap.clear(); scannedList.clear(); scanHistory = [];
+    remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
+    remove(ref(db, `scannerV2/flows/${activeFlowKey}/expected`));
+    document.getElementById('total-expected').innerText = '0';
+    document.getElementById('expected-ids').value = '';
+    updateSummaryUI();
+    showLog(`Data for "${activeFlowName}" cleared from cloud.`, 'warning');
+};
+
+/* ══════════════════════════════════════════
+   UI UPDATE
+   ══════════════════════════════════════════ */
+
+function updateSummaryUI() {
+    document.getElementById('scanned-count').innerText = scannedList.size;
+    document.getElementById('download-btn').disabled   = (scanHistory.length === 0);
+    const tbody = document.getElementById('history-body');
+    tbody.innerHTML = '';
+    for (let i = scanHistory.length - 1; i >= 0; i--) {
+        const rec = scanHistory[i];
+        const isNew = i === scanHistory.length - 1;
+        const row = document.createElement('tr');
+        if (isNew) row.className = 'new-row';
+        row.innerHTML = `
+            <td>${rec.number}</td>
+            <td>${rec.orderId || '—'}</td>
+            <td><strong>${rec.id}</strong></td>
+            <td>${rec.time}</td>
+            <td><span style="background:#e9ecef;border-radius:4px;padding:2px 6px;font-size:12px;">${rec.device || '?'}</span></td>
+        `;
+        tbody.appendChild(row);
+    }
+}
+
+/* ══════════════════════════════════════════
+   MISSING CHECK & BULK COPY UPDATES
+   ══════════════════════════════════════════ */
+
+window.checkRemaining = function() {
+    if (!expectedMap.size) { alert("You haven't loaded an expected list yet!"); return; }
+    currentMissingIds = [];
+    const container = document.getElementById('missing-list-container');
+    container.innerHTML = '';
+
+    expectedMap.forEach((orderId, tid) => {
+        if (scannedList.has(tid)) return;
+        currentMissingIds.push(tid);
+        
+        // Setup both URL formats
+        const printLink = orderId ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${orderId}` : '';
+        const orderDetailLink = orderId ? `https://sellercentral.amazon.in/orders-v3/order/${orderId}` : '';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="text-align:center;border-bottom:1px solid #ddd;">
+                ${orderId ? `<input type="checkbox" class="missing-checkbox" data-print-link="${printLink}" data-order-link="${orderDetailLink}" onchange="updateBulkCopyButtons()">` : ''}
+            </td>
+            
+            <td style="border-bottom:1px solid #ddd;">
+                ${printLink 
+                    ? `<a href="${printLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;" title="Open Print Page">${tid}</a>`
+                    : `<strong>${tid}</strong>`}
+            </td>
+            
+            <td style="border-bottom:1px solid #ddd;">
+                ${orderId 
+                    ? `<a href="${orderDetailLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;" title="Open Order Details">${orderId}</a>` 
+                    : '<span style="color:#999;font-size:12px;">Unknown</span>'}
+            </td>
+            
+            <td style="text-align:right;border-bottom:1px solid #ddd;">
+                ${printLink
+                    ? `<a href="#" onclick="copySingleLink('${printLink}',this);return false;" style="color:#0056b3;font-weight:bold;text-decoration:none;">📋 Copy Link</a>`
+                    : '<span style="color:#999;font-size:12px;">No Link</span>'}
+            </td>`;
+        container.appendChild(tr);
+    });
+
+    if (!currentMissingIds.length) {
+        playSound('success'); flashScreenGreen();
+        alert(`🎉 CONGRATULATIONS!\nAll parcels for "${activeFlowName}" have been scanned!`);
+    } else {
+        document.getElementById('missing-flow-name').innerText = activeFlowName;
+        updateBulkCopyButtons();
+        document.getElementById('missing-modal').style.display = 'block';
+    }
+};
+
+window.updateBulkCopyButtons = function() {
+    const cbs  = document.querySelectorAll('.missing-checkbox');
+    const n    = Array.from(cbs).filter(c => c.checked).length;
+    
+    document.getElementById('copy-print-btn').innerText = n 
+        ? `📋 Copy ${n} Print Links` : '📋 Copy All Print Links';
+        
+    document.getElementById('copy-order-btn').innerText = n 
+        ? `📋 Copy ${n} Order Links` : '📋 Copy All Order Links';
+};
+
+window.copyBulkLinks = function(type) {
+    const cbs     = document.querySelectorAll('.missing-checkbox');
+    const checked = Array.from(cbs).filter(c => c.checked);
+    // If none checked, copy all by default
+    const targetElements = checked.length ? checked : Array.from(cbs);
+    
+    // Choose the correct data attribute based on the button clicked
+    const attrToCopy = type === 'print' ? 'data-print-link' : 'data-order-link';
+    
+    // Extract the URLs and filter out any empty ones
+    const links = targetElements
+                    .map(el => el.getAttribute(attrToCopy))
+                    .filter(link => link && link.trim() !== '');
+                    
+    if (!links.length) { alert('No links to copy.'); return; }
+    
+    navigator.clipboard.writeText(links.join('\n')).then(() => {
+        const btnId = type === 'print' ? 'copy-print-btn' : 'copy-order-btn';
+        const btn = document.getElementById(btnId);
+        const orig = btn.innerText;
+        btn.innerText = '✅ Copied!';
+        setTimeout(() => { btn.innerText = orig; }, 2000);
+    }).catch(() => { alert('Copy failed – ensure HTTPS.'); });
+};
+
+window.copySingleLink = function(link, el) {
+    navigator.clipboard.writeText(link).then(() => {
+        const orig = el.innerText; el.innerText = '✅ Copied'; el.style.color = '#28a745';
+        setTimeout(() => { el.innerText = orig; el.style.color = '#0056b3'; }, 2000);
+    }).catch(() => { alert('Copy failed – ensure HTTPS.'); });
+};
+
+/* ══════════════════════════════════════════
+   DOWNLOAD
+   ══════════════════════════════════════════ */
+
+window.downloadExcel = function() {
+    let csv = 'Number,Order ID,Tracking ID,Time Scanned,Device\n';
+    scanHistory.forEach(r => {
+        csv += `"${r.number}","${r.orderId}","${r.id}","${r.time}","${r.device || ''}"\n`;
+    });
+    triggerDownload(csv, `Scanned_Log_${sanitizeKey(activeFlowName)}.csv`);
+};
+
+window.downloadMissingExcel = function() {
+    let csv = 'Missing Tracking ID,Order ID,Print Link\n';
+    currentMissingIds.forEach(tid => {
+        const oid  = expectedMap.get(tid) || '';
+        const link = oid ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${oid}` : '';
+        csv += `"${tid}","${oid}","${link}"\n`;
+    });
+    triggerDownload(csv, `MISSING_Parcels_${sanitizeKey(activeFlowName)}.csv`);
+};
+
+function triggerDownload(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+/* ══════════════════════════════════════════
+   BACKUPS  (localStorage – per device, restores to cloud)
+   ══════════════════════════════════════════ */
+
+window.createBackup = function() {
+    if (!scannedList.size) alert('Warning: nothing scanned yet.');
+    if (scanHistory.length) downloadExcel();
+
+    let backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
+    backups.push({
+        id:           Date.now(),
+        time:         new Date().toLocaleString(),
+        flow:         activeFlowName,
+        scannedCount: scannedList.size,
+        history:      scanHistory
+    });
+    if (backups.length > 20) backups.shift();
+    localStorage.setItem('scannerBackups', JSON.stringify(backups));
+    showLog('Backup downloaded & saved to browser history!', 'success');
+};
+
+window.showBackups = function() {
+    const backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
+    const list    = document.getElementById('backup-list');
+    list.innerHTML = '';
+    if (!backups.length) {
+        list.innerHTML = '<p style="text-align:center;color:#666;">No backups saved yet.</p>';
+    } else {
+        [...backups].reverse().forEach(b => {
+            const div = document.createElement('div');
+            div.style.cssText = 'border-bottom:1px solid #ddd;padding:12px 0;';
+            div.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <strong>${b.time}</strong><br>
+                        <span style="font-size:14px;color:#555;">Company: ${b.flow}</span><br>
+                        <span style="color:#28a745;font-weight:bold;font-size:14px;">✓ ${b.scannedCount} items</span>
+                    </div>
+                    <button onclick="restoreBackup(${b.id})"
+                        style="background:#17a2b8;color:white;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;font-weight:bold;">
+                        Restore to Cloud
+                    </button>
+                </div>`;
+            list.appendChild(div);
+        });
+    }
+    document.getElementById('backup-modal').style.display = 'block';
+};
+
+window.restoreBackup = async function(backupId) {
+    if (!confirm('⚠️ This will REPLACE all cloud scans for the active company with this backup.\nAll other devices will update instantly. Proceed?')) return;
+
+    const backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
+    const target  = backups.find(b => b.id === backupId);
+    if (!target) return;
+
+    setCloudStatus('Restoring…', 'syncing');
+    await remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
+
+    for (const rec of (target.history || [])) {
+        await push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), {
+            id:      rec.id,
+            time:    rec.time,
+            orderId: expectedMap.get(rec.id) || rec.orderId || '',
+            device:  rec.device || 'Restored'
+        });
+    }
+
+    document.getElementById('backup-modal').style.display = 'none';
+    showLog('Backup restored to cloud – all devices updated!', 'success');
+};
+
+/* ══════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════ */
+window.onload = function() {
+    setCloudStatus('Connecting…', 'syncing');
+    listenToFlowList();
+};
+
+</script>
+</body>
+</html>
