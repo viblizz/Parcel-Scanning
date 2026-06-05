@@ -80,7 +80,7 @@
         .yellow-modal h2 { color: #d39e00; font-size: 32px; margin-top: 0; }
         .btn-warning { background: #ffc107; font-size: 20px; padding: 15px 30px; border-radius: 8px; width: 100%; color: #333; border: none; font-weight: bold; cursor: pointer; }
 
-        .blue-modal { border: 8px solid #17a2b8; box-shadow: 0 0 20px #17a2b8; text-align: left; }
+        .blue-modal { border: 8px solid #17a2b8; box-shadow: 0 0 20px #17a2b8; text-align: left; max-width: 750px; }
         .blue-modal h2 { color: #17a2b8; font-size: 28px; margin-top: 0; text-align: center; }
 
         #camera-modal { z-index: 900; }
@@ -106,7 +106,6 @@
 
 <div id="flash-overlay"></div>
 
-<!-- ===================== MODALS ===================== -->
 <div id="backup-modal" class="modal-overlay">
     <div class="modal-content" style="border:8px solid #ff9800;box-shadow:0 0 20px #ff9800;max-width:600px;text-align:left;">
         <h2 style="color:#e68a00;margin-top:0;text-align:center;">💾 Saved Backups (Last 20)</h2>
@@ -138,9 +137,12 @@
     <div class="modal-content blue-modal">
         <h2>📋 Missing Parcels</h2>
         <p style="text-align:center;font-size:18px;margin-bottom:5px;">Remaining to scan for <strong id="missing-flow-name"></strong>:</p>
-        <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-            <button id="copy-bulk-btn" class="btn-primary" style="font-size:14px;padding:8px 15px;background:#28a745;" onclick="copyBulkMissingLinks()">📋 Copy All Links</button>
+        
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+            <button id="copy-print-btn" class="btn-primary" style="font-size:14px;padding:8px 15px;background:#28a745;" onclick="copyBulkLinks('print')">📋 Copy All Print Links</button>
+            <button id="copy-order-btn" class="btn-primary" style="font-size:14px;padding:8px 15px;background:#17a2b8;" onclick="copyBulkLinks('order')">📋 Copy All Order Links</button>
         </div>
+
         <div style="max-height:350px;overflow-y:auto;background:#f8f9fa;border:1px solid #ccc;border-radius:4px;">
             <table id="missing-table" style="margin-top:0;border:none;width:100%;">
                 <thead style="position:sticky;top:0;background:#e9ecef;z-index:1;">
@@ -172,7 +174,6 @@
     </div>
 </div>
 
-<!-- ===================== MAIN UI ===================== -->
 <div class="container">
 
     <div class="header-bar">
@@ -197,7 +198,6 @@
         <button class="btn-danger-sm" onclick="deleteCurrentFlow()" title="Delete Company">🗑️</button>
     </div>
 
-    <!-- SECTION 1 -->
     <div class="section" style="margin-top:16px;">
         <h3>1. Input Expected Tracking IDs</h3>
         <p style="margin-top:0;color:#666;font-size:14px;">Adding IDs to: <strong id="adding-target-text">—</strong></p>
@@ -224,7 +224,6 @@
         </div>
     </div>
 
-    <!-- SECTION 2 -->
     <div class="section">
         <h3>2. Scan Parcels</h3>
         <div class="scanner-wrapper" style="display:flex;gap:10px;align-items:center;margin-top:10px;">
@@ -235,7 +234,6 @@
         <div id="log" style="display:none;"></div>
     </div>
 
-    <!-- SECTION 3 -->
     <div class="section" style="border-bottom:none;">
         <h3>3. Scanned Summary (<span id="scanned-count">0</span> / <span id="total-expected">0</span>)</h3>
 
@@ -263,7 +261,6 @@
     </div>
 </div>
 
-<!-- ===================== FIREBASE SCRIPT ===================== -->
 <script type="module">
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, push, onValue, remove }
@@ -371,7 +368,6 @@ document.getElementById('target-ship-date').value = new Date().toISOString().spl
    REAL-TIME LISTENERS
    ══════════════════════════════════════════ */
 
-/** Listen to the flow list so every device sees new/deleted companies instantly. */
 function listenToFlowList() {
     const listRef = ref(db, 'scannerV2/flowList');
     onValue(listRef, (snapshot) => {
@@ -385,7 +381,6 @@ function listenToFlowList() {
             set(ref(db, `scannerV2/flowList/${dk}`), 'Default Company');
         }
         refreshFlowDropdown();
-        /* Auto-load first flow if nothing loaded yet */
         if (!activeFlowKey) {
             const firstKey = Object.keys(allFlowKeys)[0];
             loadFlowIntoMemory(firstKey, allFlowKeys[firstKey]);
@@ -395,7 +390,6 @@ function listenToFlowList() {
     });
 }
 
-/** Real-time listener for expected IDs of the active flow. */
 function attachExpectedListener(flowKey) {
     if (activeExpectedUnsubscribe) { activeExpectedUnsubscribe(); activeExpectedUnsubscribe = null; }
     const exRef = ref(db, `scannerV2/flows/${flowKey}/expected`);
@@ -411,18 +405,13 @@ function attachExpectedListener(flowKey) {
     });
 }
 
-/** Real-time listener for scans of the active flow.
-    Because we use push(), every individual scan arrives as an atomic event –
-    no overwrites even when 4 devices scan concurrently. */
 function attachScansListener(flowKey) {
     if (activeScansUnsubscribe) { activeScansUnsubscribe(); activeScansUnsubscribe = null; }
     const scansRef = ref(db, `scannerV2/flows/${flowKey}/scans`);
     activeScansUnsubscribe = onValue(scansRef, (snapshot) => {
-        /* Rebuild from the single source of truth */
         scannedList = new Set();
         scanHistory = [];
         if (snapshot.exists()) {
-            /* Firebase push-keys are chronologically ordered – preserve order */
             Object.entries(snapshot.val()).forEach(([, scan]) => {
                 scannedList.add(scan.id);
                 scanHistory.push({ id: scan.id, time: scan.time, orderId: scan.orderId || '', device: scan.device || '?' });
@@ -455,7 +444,6 @@ function loadFlowIntoMemory(flowKey, flowName) {
     activeFlowKey  = flowKey;
     activeFlowName = flowName || allFlowKeys[flowKey] || flowKey;
 
-    /* Reset local state immediately */
     expectedMap = new Map();
     scannedList = new Set();
     scanHistory = [];
@@ -465,7 +453,6 @@ function loadFlowIntoMemory(flowKey, flowName) {
     document.getElementById('total-expected').innerText = '…';
     updateSummaryUI();
 
-    /* Attach fresh real-time listeners */
     attachExpectedListener(flowKey);
     attachScansListener(flowKey);
 
@@ -496,11 +483,10 @@ window.deleteCurrentFlow = function() {
     if (!confirm(`⚠️ Delete company "${activeFlowName}" permanently from the cloud?`)) return;
     remove(ref(db, `scannerV2/flowList/${activeFlowKey}`));
     remove(ref(db, `scannerV2/flows/${activeFlowKey}`));
-    /* listenToFlowList will auto-refresh the dropdown and load a different flow */
 };
 
 /* ══════════════════════════════════════════
-   SCANNING – push() per scan for concurrency safety
+   SCANNING
    ══════════════════════════════════════════ */
 
 function processScannedId(scannedId) {
@@ -515,7 +501,6 @@ function processScannedId(scannedId) {
         return;
     }
 
-    /* Optimistic add to prevent a double-scan before Firebase responds */
     scannedList.add(scannedId);
 
     const now  = new Date();
@@ -524,10 +509,9 @@ function processScannedId(scannedId) {
         id:      scannedId,
         time:    time,
         orderId: expectedMap.get(scannedId) || '',
-        device:  DEVICE_ID   /* ← tag which device scanned it */
+        device:  DEVICE_ID
     };
 
-    /* push() is atomic – no overwrite risk with concurrent devices */
     push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), scanRecord)
         .then(() => {
             playSound('success');
@@ -535,7 +519,7 @@ function processScannedId(scannedId) {
             showLog(`✅ SUCCESS [${DEVICE_ID}]: ${scannedId} logged.`, 'success');
         })
         .catch(() => {
-            scannedList.delete(scannedId); /* rollback optimistic add */
+            scannedList.delete(scannedId); 
             showLog('❌ Network error – scan NOT saved. Retry!', 'warning');
         });
 }
@@ -588,308 +572,4 @@ window.stopCamera = function() {
         html5QrCode.stop().then(() => { html5QrCode.clear(); document.getElementById('camera-modal').style.display = 'none'; })
         .catch(() => {});
     } else {
-        document.getElementById('camera-modal').style.display = 'none';
-    }
-};
-
-/* ══════════════════════════════════════════
-   EXPECTED IDs – still a set() (not concurrent-sensitive)
-   ══════════════════════════════════════════ */
-
-function saveExpectedData() {
-    if (!activeFlowKey) return;
-    const obj = {};
-    expectedMap.forEach((oid, tid) => { obj[tid] = oid || ''; });
-    set(ref(db, `scannerV2/flows/${activeFlowKey}/expected`),
-        Object.keys(obj).length ? obj : null);
-}
-
-function processRawText(text, sourceName) {
-    const lines = text.split('\n');
-    const useDateFilter = document.getElementById('use-date-filter').checked;
-    const targetDate    = document.getElementById('target-ship-date').value;
-    let added = 0, skipped = 0;
-
-    lines.forEach(line => {
-        if (!line.trim()) return;
-        const cols = line.split(/[,\t]/);
-        let tid = '', oid = '', dateStr = '';
-
-        if (cols.length >= 3) {
-            oid     = cols[0].trim().replace(/^"|"$/g, '');
-            tid     = cols[1].trim().replace(/^"|"$/g, '');
-            dateStr = cols[2].trim().replace(/^"|"$/g, '');
-        } else if (cols.length === 2) {
-            oid = cols[0].trim().replace(/^"|"$/g, '');
-            tid = cols[1].trim().replace(/^"|"$/g, '');
-        } else {
-            tid = line.trim().replace(/^"|"$/g, '');
-        }
-
-        if (!tid || /^(tracking.?id)$/i.test(tid)) return;
-
-        if (useDateFilter && dateStr) {
-            if (dateStr.substring(0, 10) !== targetDate) { skipped++; return; }
-        }
-
-        if (!expectedMap.has(tid)) { expectedMap.set(tid, oid); added++; }
-    });
-
-    document.getElementById('total-expected').innerText = expectedMap.size;
-    showLog(`Added ${added} IDs from ${sourceName}.` + (skipped ? ` (Skipped ${skipped} date-filtered)` : ''), 'success');
-    document.getElementById('scanner-input').focus();
-    saveExpectedData();
-}
-
-function processReverseRawText(text, sourceName) {
-    const lines = text.split('\n');
-    let removed = 0;
-    lines.forEach(line => {
-        if (!line.trim()) return;
-        const cols = line.split(/[,\t]/);
-        let tid = cols.length >= 2 ? cols[1].trim() : line.trim();
-        tid = tid.replace(/^"|"$/g, '');
-        if (!tid || /^(tracking.?id)$/i.test(tid)) return;
-        if (expectedMap.has(tid)) { expectedMap.delete(tid); removed++; }
-    });
-    document.getElementById('total-expected').innerText = expectedMap.size;
-    showLog(`Removed ${removed} IDs using ${sourceName}.`, 'warning');
-    document.getElementById('scanner-input').focus();
-    saveExpectedData();
-}
-
-window.addExpectedIDsFromPaste = function() {
-    const text = document.getElementById('expected-ids').value;
-    if (!text.trim()) { showLog('Please paste some IDs first.', 'warning'); return; }
-    processRawText(text, 'Pasted Data');
-    document.getElementById('expected-ids').value = '';
-};
-window.handleFileUpload = function(event) {
-    const f = event.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = e => { processRawText(e.target.result, f.name); event.target.value = ''; };
-    r.readAsText(f);
-};
-window.handleReverseFileUpload = function(event) {
-    const f = event.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = e => { processReverseRawText(e.target.result, f.name); event.target.value = ''; };
-    r.readAsText(f);
-};
-
-window.resetCurrentFlow = function() {
-    if (!confirm(`⚠️ Clear ALL scanned & expected data for "${activeFlowName}"? Backups are safe.`)) return;
-    expectedMap.clear(); scannedList.clear(); scanHistory = [];
-    remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
-    remove(ref(db, `scannerV2/flows/${activeFlowKey}/expected`));
-    document.getElementById('total-expected').innerText = '0';
-    document.getElementById('expected-ids').value = '';
-    updateSummaryUI();
-    showLog(`Data for "${activeFlowName}" cleared from cloud.`, 'warning');
-};
-
-/* ══════════════════════════════════════════
-   UI UPDATE
-   ══════════════════════════════════════════ */
-
-function updateSummaryUI() {
-    document.getElementById('scanned-count').innerText = scannedList.size;
-    document.getElementById('download-btn').disabled   = (scanHistory.length === 0);
-    const tbody = document.getElementById('history-body');
-    tbody.innerHTML = '';
-    for (let i = scanHistory.length - 1; i >= 0; i--) {
-        const rec = scanHistory[i];
-        const isNew = i === scanHistory.length - 1;
-        const row = document.createElement('tr');
-        if (isNew) row.className = 'new-row';
-        row.innerHTML = `
-            <td>${rec.number}</td>
-            <td>${rec.orderId || '—'}</td>
-            <td><strong>${rec.id}</strong></td>
-            <td>${rec.time}</td>
-            <td><span style="background:#e9ecef;border-radius:4px;padding:2px 6px;font-size:12px;">${rec.device || '?'}</span></td>
-        `;
-        tbody.appendChild(row);
-    }
-}
-
-/* ══════════════════════════════════════════
-   MISSING CHECK
-   ══════════════════════════════════════════ */
-
-window.checkRemaining = function() {
-    if (!expectedMap.size) { alert("You haven't loaded an expected list yet!"); return; }
-    currentMissingIds = [];
-    const container = document.getElementById('missing-list-container');
-    container.innerHTML = '';
-
-    expectedMap.forEach((orderId, tid) => {
-        if (scannedList.has(tid)) return;
-        currentMissingIds.push(tid);
-        const link = orderId ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${orderId}` : '';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="text-align:center;border-bottom:1px solid #ddd;">
-                ${link ? `<input type="checkbox" class="missing-checkbox" data-link="${link}" onchange="updateBulkCopyButton()">` : ''}
-            </td>
-            <td style="border-bottom:1px solid #ddd;"><strong>${tid}</strong></td>
-            <td style="border-bottom:1px solid #ddd;">${orderId || '<span style="color:#999;font-size:12px;">Unknown</span>'}</td>
-            <td style="text-align:right;border-bottom:1px solid #ddd;">
-                ${link
-                    ? `<a href="#" onclick="copySingleLink('${link}',this);return false;" style="color:#0056b3;font-weight:bold;text-decoration:none;">📋 Copy Link</a>`
-                    : '<span style="color:#999;font-size:12px;">No Link</span>'}
-            </td>`;
-        container.appendChild(tr);
-    });
-
-    if (!currentMissingIds.length) {
-        playSound('success'); flashScreenGreen();
-        alert(`🎉 CONGRATULATIONS!\nAll parcels for "${activeFlowName}" have been scanned!`);
-    } else {
-        document.getElementById('missing-flow-name').innerText = activeFlowName;
-        updateBulkCopyButton();
-        document.getElementById('missing-modal').style.display = 'block';
-    }
-};
-
-window.updateBulkCopyButton = function() {
-    const cbs  = document.querySelectorAll('.missing-checkbox');
-    const n    = Array.from(cbs).filter(c => c.checked).length;
-    document.getElementById('copy-bulk-btn').innerText = n
-        ? `📋 Copy ${n} Selected Links` : '📋 Copy All Links';
-};
-
-window.copyBulkMissingLinks = function() {
-    const cbs     = document.querySelectorAll('.missing-checkbox');
-    const checked = Array.from(cbs).filter(c => c.checked);
-    const links   = (checked.length ? checked : Array.from(cbs)).map(c => c.getAttribute('data-link'));
-    if (!links.length) { alert('No links to copy.'); return; }
-    navigator.clipboard.writeText(links.join('\n')).then(() => {
-        const btn = document.getElementById('copy-bulk-btn');
-        const orig = btn.innerText;
-        btn.innerText = '✅ Copied!';
-        setTimeout(() => { btn.innerText = orig; }, 2000);
-    }).catch(() => { alert('Copy failed – ensure HTTPS.'); });
-};
-
-window.copySingleLink = function(link, el) {
-    navigator.clipboard.writeText(link).then(() => {
-        const orig = el.innerText; el.innerText = '✅ Copied'; el.style.color = '#28a745';
-        setTimeout(() => { el.innerText = orig; el.style.color = '#0056b3'; }, 2000);
-    }).catch(() => { alert('Copy failed – ensure HTTPS.'); });
-};
-
-/* ══════════════════════════════════════════
-   DOWNLOAD
-   ══════════════════════════════════════════ */
-
-window.downloadExcel = function() {
-    let csv = 'Number,Order ID,Tracking ID,Time Scanned,Device\n';
-    scanHistory.forEach(r => {
-        csv += `"${r.number}","${r.orderId}","${r.id}","${r.time}","${r.device || ''}"\n`;
-    });
-    triggerDownload(csv, `Scanned_Log_${sanitizeKey(activeFlowName)}.csv`);
-};
-
-window.downloadMissingExcel = function() {
-    let csv = 'Missing Tracking ID,Order ID,Print Link\n';
-    currentMissingIds.forEach(tid => {
-        const oid  = expectedMap.get(tid) || '';
-        const link = oid ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${oid}` : '';
-        csv += `"${tid}","${oid}","${link}"\n`;
-    });
-    triggerDownload(csv, `MISSING_Parcels_${sanitizeKey(activeFlowName)}.csv`);
-};
-
-function triggerDownload(content, filename) {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = filename; a.style.display = 'none';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
-
-/* ══════════════════════════════════════════
-   BACKUPS  (localStorage – per device, restores to cloud)
-   ══════════════════════════════════════════ */
-
-window.createBackup = function() {
-    if (!scannedList.size) alert('Warning: nothing scanned yet.');
-    if (scanHistory.length) downloadExcel();
-
-    let backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
-    backups.push({
-        id:           Date.now(),
-        time:         new Date().toLocaleString(),
-        flow:         activeFlowName,
-        scannedCount: scannedList.size,
-        history:      scanHistory
-    });
-    if (backups.length > 20) backups.shift();
-    localStorage.setItem('scannerBackups', JSON.stringify(backups));
-    showLog('Backup downloaded & saved to browser history!', 'success');
-};
-
-window.showBackups = function() {
-    const backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
-    const list    = document.getElementById('backup-list');
-    list.innerHTML = '';
-    if (!backups.length) {
-        list.innerHTML = '<p style="text-align:center;color:#666;">No backups saved yet.</p>';
-    } else {
-        [...backups].reverse().forEach(b => {
-            const div = document.createElement('div');
-            div.style.cssText = 'border-bottom:1px solid #ddd;padding:12px 0;';
-            div.innerHTML = `
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div>
-                        <strong>${b.time}</strong><br>
-                        <span style="font-size:14px;color:#555;">Company: ${b.flow}</span><br>
-                        <span style="color:#28a745;font-weight:bold;font-size:14px;">✓ ${b.scannedCount} items</span>
-                    </div>
-                    <button onclick="restoreBackup(${b.id})"
-                        style="background:#17a2b8;color:white;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;font-weight:bold;">
-                        Restore to Cloud
-                    </button>
-                </div>`;
-            list.appendChild(div);
-        });
-    }
-    document.getElementById('backup-modal').style.display = 'block';
-};
-
-window.restoreBackup = async function(backupId) {
-    if (!confirm('⚠️ This will REPLACE all cloud scans for the active company with this backup.\nAll other devices will update instantly. Proceed?')) return;
-
-    const backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
-    const target  = backups.find(b => b.id === backupId);
-    if (!target) return;
-
-    setCloudStatus('Restoring…', 'syncing');
-    /* Delete existing cloud scans then re-push each record */
-    await remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
-
-    for (const rec of (target.history || [])) {
-        await push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), {
-            id:      rec.id,
-            time:    rec.time,
-            orderId: expectedMap.get(rec.id) || rec.orderId || '',
-            device:  rec.device || 'Restored'
-        });
-    }
-
-    document.getElementById('backup-modal').style.display = 'none';
-    showLog('Backup restored to cloud – all devices updated!', 'success');
-};
-
-/* ══════════════════════════════════════════
-   INIT
-   ══════════════════════════════════════════ */
-window.onload = function() {
-    setCloudStatus('Connecting…', 'syncing');
-    listenToFlowList();   /* kicks off everything via the onValue callback */
-};
-
-</script>
-</body>
-</html>
+        document
