@@ -89,16 +89,24 @@
 </div>
 
 <div id="duplicate-modal" class="modal-overlay">
-    <div class="modal-content red-modal"><h2>⚠️ DUPLICATE!</h2><button class="btn-danger-sm" onclick="resumeScanning('duplicate-modal')">OK</button></div>
+    <div class="modal-content red-modal">
+        <h2>⚠️ DUPLICATE!</h2>
+        <p style="font-size: 18px; margin-bottom: 20px;">Barcode: <strong id="duplicate-id-text"></strong></p>
+        <button class="btn-danger-sm" onclick="resumeScanning('duplicate-modal')">OK</button>
+    </div>
 </div>
 
 <div id="invalid-modal" class="modal-overlay">
-    <div class="modal-content yellow-modal"><h2>⚠️ INVALID!</h2><button class="btn-secondary" onclick="resumeScanning('invalid-modal')">OK</button></div>
+    <div class="modal-content yellow-modal">
+        <h2>⚠️ INVALID!</h2>
+        <p style="font-size: 18px; margin-bottom: 20px;">Barcode: <strong id="invalid-id-text"></strong></p>
+        <button class="btn-secondary" onclick="resumeScanning('invalid-modal')">OK</button>
+    </div>
 </div>
 
 <div id="missing-modal" class="modal-overlay">
     <div class="modal-content blue-modal">
-        <h2 style="text-align:center;">📋 Missing Parcels</h2>
+        <h2 style="text-align:center;">📋 Missing Parcels (<span id="missing-flow-name"></span>)</h2>
         <div style="display:flex;justify-content:center;gap:10px;margin-bottom:15px;">
             <button id="copy-print-btn" class="btn-primary" onclick="copyBulkLinks('print')">📋 Copy All Print Links</button>
             <button id="copy-order-btn" class="btn-primary" onclick="copyBulkLinks('order')">📋 Copy All Order Links</button>
@@ -127,7 +135,16 @@
 </div>
 
 <div class="container">
-    <div class="header-bar"><h1>☁️ Cloud Scanner Pro</h1><div class="header-right"><div id="cloud-status">Connecting…</div></div></div>
+    <div class="header-bar">
+        <h1>☁️ Cloud Scanner Pro</h1>
+        <div class="header-right">
+            <div id="cloud-status">Connecting…</div>
+            <div class="sync-bar">
+                <span id="sync-dot" class="sync-dot"></span>
+                <span id="last-sync-text" class="last-sync-text">Waiting to sync...</span>
+            </div>
+        </div>
+    </div>
     <div class="multidev-banner">🔗 <strong>Multi-Device Sync Active.</strong></div>
     
     <div class="flow-controls">
@@ -304,7 +321,8 @@ function refreshFlowDropdown() {
 function loadFlowIntoMemory(flowKey, flowName) {
     activeFlowKey = flowKey; activeFlowName = flowName || allFlowKeys[flowKey] || flowKey;
     expectedMap = new Map(); scannedList = new Set(); scanHistory = [];
-    document.getElementById('adding-target-text').innerText = activeFlowName;
+    
+    // The buggy line has been removed to prevent the crash
     document.getElementById('active-flow-label').innerText  = 'Target: ' + activeFlowName.toUpperCase();
     document.getElementById('total-expected').innerText = '…';
     updateSummaryUI(); attachExpectedListener(flowKey); attachScansListener(flowKey);
