@@ -111,27 +111,43 @@
 
         #history-tabs-container button { padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 1px solid #ccc; cursor: pointer; white-space: nowrap; transition: 0.2s; min-height: 40px; width: auto; flex-shrink: 0; }
 
-        /* MOBILE MEDIA QUERIES */
+        /* ========================================================
+           MOBILE MEDIA QUERIES (COMPLETELY OVERHAULED FOR SPACE)
+           ======================================================== */
         @media (max-width: 768px) {
             body { padding: 8px; }
-            .container { padding: 16px; margin: 0 auto; border-radius: 12px; }
-            .header-bar { flex-direction: column; align-items: flex-start; }
-            .header-right { width: 100%; align-items: flex-start; flex-direction: row; justify-content: space-between; margin-top: 8px; }
+            .container { padding: 14px; margin: 0 auto; border-radius: 12px; }
+            .header-bar { flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 12px; margin-bottom: 12px; }
+            .header-right { width: 100%; align-items: center; flex-direction: row; justify-content: space-between; margin-top: 4px; }
             
-            .flow-controls { flex-direction: column; align-items: stretch; }
-            .flow-controls select, .flow-controls button { width: 100%; }
+            /* 1. FLOW CONTROLS (Company Select on top, New Company & Bin side-by-side) */
+            .flow-controls { flex-direction: row; flex-wrap: wrap; padding: 12px; gap: 8px; }
+            .flow-controls select { width: 100%; margin-bottom: 4px; padding: 10px; font-size: 14px; }
+            .flow-controls button:nth-of-type(1) { flex: 1; padding: 10px; font-size: 14px; } /* New Company Button */
+            .flow-controls button:nth-of-type(2) { width: 50px; flex: none; padding: 10px 0; } /* Bin Button */
             
-            .filter-box { flex-direction: column; align-items: stretch; }
-            .filter-left { flex-direction: column; align-items: flex-start; }
+            .filter-box { flex-direction: column; align-items: stretch; gap: 12px; padding: 12px; }
+            .filter-left { width: 100%; justify-content: space-between; flex-wrap: wrap; }
             
-            /* Stack buttons on mobile */
-            .button-group { flex-direction: column; }
-            .button-group button { width: 100%; }
-            .push-right { margin-left: 0; }
+            /* 2. UPLOAD & REVERSE BUTTONS (Side-by-side) */
+            .filter-box .button-group { flex-direction: row; flex-wrap: nowrap; margin-top: 0; gap: 8px; }
+            .filter-box .button-group button { flex: 1; padding: 12px 4px; font-size: 13px; }
             
-            /* Stack Scanner Input and Camera button */
-            .scanner-wrapper { flex-direction: column; }
-            .camera-btn { width: 100%; }
+            /* 3. SECTION 1 ACTION BUTTONS */
+            .section > .button-group { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+            .section > .button-group button:nth-child(1) { flex: 1 1 100%; padding: 12px; font-size: 14px; } /* Add Pasted Data */
+            /* Save & Next AND Clear Current Flow side-by-side */
+            .section > .button-group button:nth-child(2),
+            .section > .button-group button:nth-child(3) { flex: 1 1 calc(50% - 5px); padding: 12px 4px; font-size: 13px; margin: 0; }
+
+            /* 4. SCANNER BAR (Input and Camera side-by-side) */
+            .scanner-wrapper { flex-direction: row; gap: 8px; }
+            #scanner-input { height: 50px; font-size: 16px; padding: 10px; }
+            .camera-btn { width: auto; height: 50px; padding: 0 16px; flex: none; font-size: 15px; }
+
+            /* 5. SUMMARY BUTTONS (2 rows of 2 buttons) */
+            .section:last-child .button-group { flex-direction: row; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+            .section:last-child .button-group button { flex: 1 1 calc(50% - 5px); padding: 12px 4px; font-size: 13px; margin: 0; }
 
             .modal-content { padding: 16px; margin: auto; }
         }
@@ -141,7 +157,6 @@
 
 <div id="flash-overlay"></div>
 
-<!-- MODALS -->
 <div id="backup-modal" class="modal-overlay">
     <div class="modal-content" style="max-width:600px;">
         <h2 style="margin-top:0; font-size: 20px;">💾 Saved Backups</h2>
@@ -202,7 +217,6 @@
     </div>
 </div>
 
-<!-- MAIN APP -->
 <div class="container">
     <div class="header-bar">
         <h1>☁️ Cloud Scanner Pro</h1>
