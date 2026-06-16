@@ -66,11 +66,11 @@
         .modal-content { background: white; margin: 10% auto; padding: 40px; width: 90%; max-width: 650px; border-radius: 8px; }
         .red-modal { border: 8px solid #dc3545; }
         .yellow-modal { border: 8px solid #ffc107; }
-        .blue-modal { border: 8px solid #17a2b8; max-width: 750px; text-align: left; }
+        .blue-modal { border: 8px solid #17a2b8; max-width: 850px; text-align: left; }
         
         #camera-modal { z-index: 900; }
         #reader { width: 100%; min-height: 300px; background: #000; border-radius: 8px; overflow: hidden; }
-        .button-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .button-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
         #flash-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(40, 167, 69, 0.7); z-index: 9999; pointer-events: none; transition: opacity 0.2s; }
         .missing-checkbox { width: 20px; height: 20px; cursor: pointer; }
         .multidev-banner { background: #e8f4fd; border: 1px solid #bee3f8; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #2c5282; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
@@ -85,6 +85,20 @@
         <h2>💾 Saved Backups</h2>
         <div id="backup-list" style="max-height:300px;overflow-y:auto;border:1px solid #ccc;padding:10px;margin-bottom:15px;"></div>
         <button class="btn-secondary" style="width:100%" onclick="document.getElementById('backup-modal').style.display='none'">Close</button>
+    </div>
+</div>
+
+<div id="archive-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px; text-align:left;">
+        <h2>📅 Archived Day: <span id="archive-modal-date"></span></h2>
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Scanned: <strong id="archive-scanned-count">0</strong> / <strong id="archive-expected-count">0</strong>
+        </p>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom: 20px;">
+            <button class="btn-primary" onclick="downloadArchiveExcel()">⬇️ Download Scanned List</button>
+            <button class="btn-primary" style="background:#dc3545;" onclick="downloadArchiveMissing()">⬇️ Download Missing Parcels</button>
+        </div>
+        <button class="btn-secondary" style="width:100%;" onclick="document.getElementById('archive-modal').style.display='none'">Close</button>
     </div>
 </div>
 
@@ -116,14 +130,17 @@
                 <thead style="position:sticky;top:0;background:#e9ecef;z-index:1;">
                     <tr>
                         <th style="width:30px;text-align:center;">✓</th>
-                        <th>Tracking ID</th>
+                        <th>Date</th>
                         <th>Order ID</th>
+                        <th>Tracking ID</th>
+                        <th>SKU</th>
+                        <th>Qty</th>
                     </tr>
                 </thead>
                 <tbody id="missing-list-container"></tbody>
             </table>
         </div>
-        <div class="button-group">
+        <div class="button-group" style="justify-content:center;">
             <button class="btn-primary" onclick="downloadMissingExcel()">⬇️ Download List</button>
             <button class="btn-secondary" onclick="resumeScanning('missing-modal')">Close</button>
         </div>
@@ -153,6 +170,13 @@
         <button class="btn-danger-sm" onclick="deleteCurrentFlow()">🗑️</button>
     </div>
 
+    <div style="margin-bottom: 15px; margin-top: 15px;">
+        <h4 style="margin: 0 0 8px 0; color: #555; font-size: 14px;">⏪ Previous 3 Days Archives:</h4>
+        <div id="history-tabs-container" style="display:flex; gap:10px; overflow-x:auto; padding-bottom: 5px;">
+            <span style="color:#888; font-size: 13px; font-style: italic;">Loading archives...</span>
+        </div>
+    </div>
+
     <div class="section">
         <h3>1. Input Expected</h3>
         <div class="filter-box">
@@ -169,7 +193,8 @@
         <textarea id="expected-ids" rows="5"></textarea>
         <div class="button-group">
             <button class="btn-primary" onclick="addExpectedIDsFromPaste()">➕ Add Pasted Data</button>
-            <button class="btn-secondary" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
+            <button class="btn-primary" style="background:#28a745;" onclick="saveAndNextDay()">⏭️ Save & Next Day</button>
+            <button class="btn-secondary" style="margin-left: auto;" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
         </div>
     </div>
 
@@ -178,7 +203,7 @@
         <div class="scanner-wrapper">
             <input type="text" id="scanner-input" placeholder="Scan barcode..." autofocus>
             <div id="active-flow-label">Target: —</div>
-            <button class="btn-primary" onclick="startCamera()" style="padding:10px 20px;font-size:18px;background:#28a745;margin-top:0;white-space:nowrap;">📷 Camera</button>
+            <button class="btn-primary" onclick="startCamera()" style="padding:10px 20px;font-size:18px;background:#28a745;margin-top:0;white-space:nowrap; position: absolute; right: 0; top: 0; height: 100%;">📷 Camera</button>
         </div>
         <div id="log" style="display:none;"></div>
     </div>
@@ -191,9 +216,23 @@
         </div>
         <div class="button-group">
             <button id="download-btn" onclick="downloadExcel()" disabled>⬇️ Download List</button>
-            <button id="finish-btn" onclick="checkRemaining()">🏁 Finish</button>
+            <button id="finish-btn" onclick="checkRemaining()">🏁 Finish & Check Missing</button>
         </div>
-        <table id="history-table"><thead><tr><th>#</th><th>Order ID</th><th>Tracking ID</th><th>Time</th><th>Device</th></tr></thead><tbody id="history-body"></tbody></table>
+        <table id="history-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Order ID</th>
+                    <th>Tracking ID</th>
+                    <th>Product SKU</th>
+                    <th>Qty</th>
+                    <th>Time Scanned</th>
+                    <th>Device</th>
+                </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+        </table>
     </div>
 </div>
 
@@ -223,6 +262,9 @@ let scanHistory = [];
 let currentMissingIds = [];
 let activeScansUnsubscribe = null;
 let activeExpectedUnsubscribe = null;
+let activeArchiveUnsubscribe = null;
+let archiveDataMap = {}; 
+let currentlyViewingArchiveDate = "";
 let html5QrCode;
 let isCameraPaused = false;
 
@@ -288,7 +330,15 @@ function attachExpectedListener(flowKey) {
     if (activeExpectedUnsubscribe) { activeExpectedUnsubscribe(); activeExpectedUnsubscribe = null; }
     activeExpectedUnsubscribe = onValue(ref(db, `scannerV2/flows/${flowKey}/expected`), (snapshot) => {
         expectedMap = new Map();
-        if (snapshot.exists()) Object.entries(snapshot.val()).forEach(([tid, oid]) => { expectedMap.set(tid, oid || ''); });
+        if (snapshot.exists()) {
+            Object.entries(snapshot.val()).forEach(([tid, data]) => {
+                if (typeof data === 'string') {
+                    expectedMap.set(tid, { oid: data, date: '', sku: '', qty: '' });
+                } else {
+                    expectedMap.set(tid, data);
+                }
+            });
+        }
         document.getElementById('total-expected').innerText = expectedMap.size;
         markSynced();
     });
@@ -301,11 +351,51 @@ function attachScansListener(flowKey) {
         if (snapshot.exists()) {
             Object.entries(snapshot.val()).forEach(([, scan]) => {
                 scannedList.add(scan.id);
-                scanHistory.push({ id: scan.id, time: scan.time, orderId: scan.orderId || '', device: scan.device || '?' });
+                scanHistory.push({ 
+                    id: scan.id, time: scan.time, orderId: scan.orderId || '', 
+                    expectedDate: scan.expectedDate || '', sku: scan.sku || '', qty: scan.qty || '', 
+                    device: scan.device || '?' 
+                });
             });
             scanHistory.forEach((item, i) => { item.number = i + 1; });
         }
         updateSummaryUI(); markSynced();
+    });
+}
+
+function attachArchiveListener(flowKey) {
+    if (activeArchiveUnsubscribe) { activeArchiveUnsubscribe(); activeArchiveUnsubscribe = null; }
+    activeArchiveUnsubscribe = onValue(ref(db, `scannerV2/flows/${flowKey}/archives`), (snapshot) => {
+        const container = document.getElementById('history-tabs-container');
+        container.innerHTML = '';
+        archiveDataMap = {};
+
+        if (snapshot.exists()) {
+            archiveDataMap = snapshot.val();
+            const dates = Object.keys(archiveDataMap).sort((a, b) => new Date(b) - new Date(a));
+            const top3 = dates.slice(0, 3).reverse();
+
+            top3.forEach(date => {
+                const expectedCount = archiveDataMap[date].expected ? Object.keys(archiveDataMap[date].expected).length : 0;
+                const scannedCount = archiveDataMap[date].scans ? Object.keys(archiveDataMap[date].scans).length : 0;
+                const isComplete = (expectedCount > 0 && expectedCount === scannedCount);
+
+                const btn = document.createElement('button');
+                btn.style.cssText = `padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; border: 1px solid #ccc; cursor: pointer; white-space: nowrap; transition: 0.2s;`;
+                
+                if (isComplete) {
+                    btn.style.background = '#d4edda'; btn.style.color = '#155724'; btn.style.borderColor = '#c3e6cb';
+                } else {
+                    btn.style.background = '#fff3cd'; btn.style.color = '#856404'; btn.style.borderColor = '#ffeeba';
+                }
+                
+                btn.innerText = `📅 ${date} (${scannedCount}/${expectedCount})`;
+                btn.onclick = () => openArchiveModal(date);
+                container.appendChild(btn);
+            });
+        } else {
+            container.innerHTML = '<span style="color:#888; font-size: 13px; font-style: italic;">No previous days archived yet.</span>';
+        }
     });
 }
 
@@ -322,10 +412,12 @@ function loadFlowIntoMemory(flowKey, flowName) {
     activeFlowKey = flowKey; activeFlowName = flowName || allFlowKeys[flowKey] || flowKey;
     expectedMap = new Map(); scannedList = new Set(); scanHistory = [];
     
-    // The buggy line has been removed to prevent the crash
     document.getElementById('active-flow-label').innerText  = 'Target: ' + activeFlowName.toUpperCase();
     document.getElementById('total-expected').innerText = '…';
-    updateSummaryUI(); attachExpectedListener(flowKey); attachScansListener(flowKey);
+    updateSummaryUI(); 
+    attachExpectedListener(flowKey); 
+    attachScansListener(flowKey);
+    attachArchiveListener(flowKey);
     document.getElementById('scanner-input').focus();
 }
 
@@ -357,9 +449,16 @@ function processScannedId(scannedId) {
     
     scannedList.add(scannedId);
     const now = new Date();
+    const expectedData = expectedMap.get(scannedId) || { oid: '', date: '', sku: '', qty: '' };
+
     push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), {
-        id: scannedId, time: now.toLocaleTimeString() + ' on ' + now.toLocaleDateString(),
-        orderId: expectedMap.get(scannedId) || '', device: DEVICE_ID
+        id: scannedId, 
+        time: now.toLocaleTimeString() + ' on ' + now.toLocaleDateString(),
+        orderId: expectedData.oid, 
+        expectedDate: expectedData.date,
+        sku: expectedData.sku,
+        qty: expectedData.qty,
+        device: DEVICE_ID
     }).then(() => {
         playSound('success'); flashScreenGreen(); showLog(`✅ SUCCESS: ${scannedId}`, 'success');
     }).catch(() => { scannedList.delete(scannedId); showLog('❌ Network error', 'warning'); });
@@ -405,13 +504,11 @@ window.stopCamera = function() {
 
 function saveExpectedData() {
     if (!activeFlowKey) return;
-    const obj = {}; expectedMap.forEach((oid, tid) => { obj[tid] = oid || ''; });
+    const obj = {}; 
+    expectedMap.forEach((data, tid) => { obj[tid] = data; }); 
     set(ref(db, `scannerV2/flows/${activeFlowKey}/expected`), Object.keys(obj).length ? obj : null);
 }
 
-// ------------------------------------------------------------------
-// SMART PARSER LOGIC - UPDATED FOR SELLER FLEX
-// ------------------------------------------------------------------
 function processRawText(text, sourceName) {
     const lines = text.split('\n');
     const useDateFilter = document.getElementById('use-date-filter').checked;
@@ -454,7 +551,8 @@ function processRawText(text, sourceName) {
 
                 if (!tid || /^(tracking.?id)$/i.test(tid)) continue;
                 
-                if (!expectedMap.has(tid)) { expectedMap.set(tid, oid); added++; }
+                // Store as object for Seller Flex to keep map uniform
+                if (!expectedMap.has(tid)) { expectedMap.set(tid, { oid: oid, date: '', sku: '', qty: '' }); added++; }
             }
         } else {
             alert("Could not detect 'Order ID' and 'Tracking ID' columns in this Seller Flex file. Please check the file headers.");
@@ -462,29 +560,69 @@ function processRawText(text, sourceName) {
         }
 
     } else {
-        lines.forEach(line => {
-            if (!line.trim()) return;
-            const cols = line.split(/[,\t]/);
-            let tid = '', oid = '', dateStr = '';
+        // --- STRICT SMART PARSER FOR STANDARD AMAZON FILES ---
+        let headerIdx = 0;
+        while (headerIdx < lines.length && !lines[headerIdx].trim()) headerIdx++;
+        if (headerIdx >= lines.length) return;
 
-            if (cols.length >= 3) {
-                oid     = cols[0].trim().replace(/^"|"$/g, '');
-                tid     = cols[1].trim().replace(/^"|"$/g, '');
-                dateStr = cols[2].trim().replace(/^"|"$/g, '');
-            } else if (cols.length === 2) {
-                oid = cols[0].trim().replace(/^"|"$/g, '');
-                tid = cols[1].trim().replace(/^"|"$/g, '');
-            } else {
-                tid = line.trim().replace(/^"|"$/g, '');
+        const headerLine = lines[headerIdx];
+        const delimiter = headerLine.includes('\t') ? '\t' : ',';
+        
+        const parseLine = (line, delim) => {
+            if (delim === '\t') return line.split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
+            let res = [], inQ = false, curr = '';
+            for (let i=0; i<line.length; i++) {
+                let c = line[i];
+                if (c === '"') inQ = !inQ;
+                else if (c === delim && !inQ) { res.push(curr.trim()); curr = ''; }
+                else curr += c;
             }
+            res.push(curr.trim());
+            return res.map(val => val.replace(/^"|"$/g, ''));
+        };
 
-            if (!tid || /^(tracking.?id)$/i.test(tid)) return;
+        const headers = parseLine(headerLine, delimiter).map(h => h.toLowerCase());
+        
+        let oidIdx = headers.findIndex(h => h.includes('order-id') || h.includes('order id'));
+        let tidIdx = headers.findIndex(h => h.includes('tracking-id') || h.includes('tracking id'));
+        let dateIdx = headers.findIndex(h => h.includes('expected-ship-date') || h.includes('ship-date'));
+        let skuIdx = headers.findIndex(h => h.includes('sku'));
+        let qtyIdx = headers.findIndex(h => h.includes('quantity-purchased') || h.includes('qty'));
 
-            if (useDateFilter && dateStr) {
-                if (dateStr.substring(0, 10) !== targetDate) { skipped++; return; }
+        if (oidIdx !== -1 && tidIdx !== -1) {
+            for (let i = headerIdx + 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                const cols = parseLine(lines[i], delimiter);
+                const oid = cols[oidIdx] || '';
+                const tid = cols[tidIdx] || '';
+                const sku = (skuIdx !== -1) ? (cols[skuIdx] || '') : '';
+                const qty = (qtyIdx !== -1) ? (cols[qtyIdx] || '1') : '1';
+                const dateStr = (dateIdx !== -1) ? (cols[dateIdx] || '') : '';
+
+                if (!tid || /^(tracking.?id)$/i.test(tid)) continue;
+
+                let shortDate = '';
+                if (dateStr) {
+                    shortDate = dateStr.substring(0, 10); 
+                    if (useDateFilter && shortDate) {
+                        // Skip future dates, but KEEP today and all past dates
+                        if (shortDate > targetDate) { 
+                            skipped++; 
+                            continue; 
+                        }
+                    }
+                }
+
+                if (!expectedMap.has(tid)) { 
+                    expectedMap.set(tid, { oid: oid, date: shortDate, sku: sku, qty: qty }); 
+                    added++; 
+                }
             }
-            if (!expectedMap.has(tid)) { expectedMap.set(tid, oid); added++; }
-        });
+        } else {
+            alert("Could not detect 'order-id' and 'tracking-id' columns. Please check the file headers.");
+            return;
+        }
     }
 
     document.getElementById('total-expected').innerText = expectedMap.size;
@@ -492,7 +630,6 @@ function processRawText(text, sourceName) {
     document.getElementById('scanner-input').focus();
     saveExpectedData();
 }
-// ------------------------------------------------------------------
 
 function processReverseRawText(text, sourceName) {
     const lines = text.split('\n'); let removed = 0;
@@ -532,14 +669,65 @@ window.resetCurrentFlow = function() {
     updateSummaryUI(); showLog(`Data for "${activeFlowName}" cleared from cloud.`, 'warning');
 };
 
+window.saveAndNextDay = async function() {
+    if (!expectedMap.size && !scannedList.size) {
+        alert("There is no data loaded to save."); return;
+    }
+    
+    const currentDate = document.getElementById('target-ship-date').value;
+    if (!confirm(`⏭️ Archive all data for ${currentDate} and start the next day?`)) return;
+
+    const archiveExpected = {};
+    expectedMap.forEach((data, tid) => { archiveExpected[tid] = data; });
+
+    const archiveScans = {};
+    scanHistory.forEach(rec => { archiveScans[rec.id] = rec; });
+
+    setCloudStatus('Saving Archive...', 'syncing');
+    await set(ref(db, `scannerV2/flows/${activeFlowKey}/archives/${currentDate}/expected`), archiveExpected);
+    await set(ref(db, `scannerV2/flows/${activeFlowKey}/archives/${currentDate}/scans`), archiveScans);
+
+    await remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
+    await remove(ref(db, `scannerV2/flows/${activeFlowKey}/expected`));
+
+    expectedMap.clear(); scannedList.clear(); scanHistory = [];
+    document.getElementById('total-expected').innerText = '0'; 
+    document.getElementById('expected-ids').value = '';
+    updateSummaryUI();
+
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+    document.getElementById('target-ship-date').value = nextDate.toISOString().split('T')[0];
+
+    showLog(`✅ Data archived! Cycle advanced to ${document.getElementById('target-ship-date').value}.`, 'success');
+    markSynced();
+};
+
 function updateSummaryUI() {
     document.getElementById('scanned-count').innerText = scannedList.size;
     document.getElementById('download-btn').disabled = (scanHistory.length === 0);
     const tbody = document.getElementById('history-body'); tbody.innerHTML = '';
+    
+    const actualToday = new Date().toISOString().split('T')[0];
+
     for (let i = scanHistory.length - 1; i >= 0; i--) {
         const rec = scanHistory[i]; const isNew = i === scanHistory.length - 1;
         const row = document.createElement('tr'); if (isNew) row.className = 'new-row';
-        row.innerHTML = `<td>${rec.number}</td><td>${rec.orderId || '—'}</td><td><strong>${rec.id}</strong></td><td>${rec.time}</td><td><span style="background:#e9ecef;border-radius:4px;padding:2px 6px;font-size:12px;">${rec.device || '?'}</span></td>`;
+        
+        let dateHtml = `<span style="font-size:12px;color:#555;">${rec.expectedDate || '—'}</span>`;
+        if (rec.expectedDate && rec.expectedDate < actualToday) {
+            dateHtml = `<span style="background:#f8d7da; color:#721c24; font-weight:bold; border:1px solid #f5c6cb; border-radius:4px; padding:3px 6px; font-size:12px; white-space:nowrap;">⚠️ LATE: ${rec.expectedDate}</span>`;
+        }
+
+        row.innerHTML = `
+            <td>${rec.number}</td>
+            <td>${dateHtml}</td>
+            <td>${rec.orderId || '—'}</td>
+            <td><strong>${rec.id}</strong></td>
+            <td><span style="font-size:12px;">${rec.sku || '—'}</span></td>
+            <td>${rec.qty || '—'}</td>
+            <td><span style="font-size:12px;">${rec.time}</span></td>
+            <td><span style="background:#e9ecef;border-radius:4px;padding:2px 6px;font-size:12px;">${rec.device || '?'}</span></td>`;
         tbody.appendChild(row);
     }
 }
@@ -571,25 +759,48 @@ window.copyBulkLinks = function(type) {
 
 window.checkRemaining = function() {
     if (!expectedMap.size) { alert("You haven't loaded an expected list yet!"); return; }
-    currentMissingIds = []; const container = document.getElementById('missing-list-container'); container.innerHTML = '';
+    currentMissingIds = []; 
+    const container = document.getElementById('missing-list-container'); 
+    container.innerHTML = '';
     
-    expectedMap.forEach((orderId, tid) => {
+    const actualToday = new Date().toISOString().split('T')[0];
+    
+    expectedMap.forEach((data, tid) => {
         if (scannedList.has(tid)) return;
         currentMissingIds.push(tid);
         
+        const orderId = data.oid || '';
+        const expectedDate = data.date || '';
+        const sku = data.sku || '—';
+        const qty = data.qty || '—';
+        
         const printLink = orderId ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${orderId}` : '';
         const orderDetailLink = orderId ? `https://sellercentral.amazon.in/orders-v3/order/${orderId}` : '';
+        
+        let dateDisplay = `<span style="font-size:12px;color:#555;">${expectedDate || '—'}</span>`;
+        if (expectedDate && expectedDate < actualToday) {
+            dateDisplay = `<span style="background:#f8d7da; color:#721c24; font-weight:bold; border:1px solid #f5c6cb; border-radius:4px; padding:3px 6px; font-size:12px; white-space:nowrap;">⚠️ LATE: ${expectedDate}</span>`;
+        }
         
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td style="text-align:center;border-bottom:1px solid #ddd;">
                 ${orderId ? `<input type="checkbox" class="missing-checkbox" data-print-link="${printLink}" data-order-link="${orderDetailLink}" onchange="updateBulkCopyButtons()">` : ''}
             </td>
-            <td style="border-bottom:1px solid #ddd;">
+            <td style="border-bottom:1px solid #ddd; vertical-align:middle;">
+                ${dateDisplay}
+            </td>
+            <td style="border-bottom:1px solid #ddd; vertical-align:middle;">
+                ${orderId ? `<a href="${orderDetailLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${orderId}</a>` : '<span style="color:#999;font-size:12px;">Unknown</span>'}
+            </td>
+            <td style="border-bottom:1px solid #ddd; vertical-align:middle;">
                 ${printLink ? `<a href="${printLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${tid}</a>` : `<strong>${tid}</strong>`}
             </td>
-            <td style="border-bottom:1px solid #ddd;">
-                ${orderId ? `<a href="${orderDetailLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${orderId}</a>` : '<span style="color:#999;font-size:12px;">Unknown</span>'}
+            <td style="border-bottom:1px solid #ddd; vertical-align:middle; font-size:12px; max-width:200px; word-wrap:break-word;">
+                ${sku}
+            </td>
+            <td style="border-bottom:1px solid #ddd; vertical-align:middle; text-align:center; font-weight:bold;">
+                ${qty}
             </td>`;
         container.appendChild(tr);
     });
@@ -603,15 +814,20 @@ window.checkRemaining = function() {
 };
 
 window.downloadExcel = function() {
-    let csv = 'Number,Order ID,Tracking ID,Time Scanned,Device\n';
-    scanHistory.forEach(r => { csv += `"${r.number}","${r.orderId}","${r.id}","${r.time}","${r.device || ''}"\n`; });
+    let csv = 'Number,Expected Date,Order ID,Tracking ID,SKU,Qty,Time Scanned,Device\n';
+    scanHistory.forEach(r => { 
+        csv += `"${r.number}","${r.expectedDate || ''}","${r.orderId}","${r.id}","${r.sku || ''}","${r.qty || ''}","${r.time}","${r.device || ''}"\n`; 
+    });
     triggerDownload(csv, `Scanned_Log_${sanitizeKey(activeFlowName)}.csv`);
 };
 window.downloadMissingExcel = function() {
-    let csv = 'Missing Tracking ID,Order ID,Print Link\n';
+    let csv = 'Expected Date,Missing Tracking ID,Order ID,SKU,Qty,Print Link\n';
     currentMissingIds.forEach(tid => {
-        const oid = expectedMap.get(tid) || ''; const link = oid ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${oid}` : '';
-        csv += `"${tid}","${oid}","${link}"\n`;
+        const data = expectedMap.get(tid) || { oid: '', date: '', sku: '', qty: '' };
+        const oid = data.oid;
+        const expDate = data.date;
+        const link = oid ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${oid}` : '';
+        csv += `"${expDate}","${tid}","${oid}","${data.sku || ''}","${data.qty || ''}","${link}"\n`;
     });
     triggerDownload(csv, `MISSING_Parcels_${sanitizeKey(activeFlowName)}.csv`);
 };
@@ -620,6 +836,49 @@ function triggerDownload(content, filename) {
     const a = document.createElement('a'); a.href = url; a.download = filename; a.style.display = 'none';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
+
+window.openArchiveModal = function(date) {
+    if (!archiveDataMap[date]) return;
+    currentlyViewingArchiveDate = date;
+    
+    const expected = archiveDataMap[date].expected || {};
+    const scans = archiveDataMap[date].scans || {};
+    
+    document.getElementById('archive-modal-date').innerText = date;
+    document.getElementById('archive-expected-count').innerText = Object.keys(expected).length;
+    document.getElementById('archive-scanned-count').innerText = Object.keys(scans).length;
+    
+    document.getElementById('archive-modal').style.display = 'block';
+};
+
+window.downloadArchiveExcel = function() {
+    const scans = archiveDataMap[currentlyViewingArchiveDate]?.scans || {};
+    let csv = 'Number,Expected Date,Order ID,Tracking ID,SKU,Qty,Time Scanned,Device\n';
+    
+    const scanArr = Object.values(scans).sort((a, b) => (a.number || 0) - (b.number || 0));
+    
+    scanArr.forEach((r, i) => { 
+        csv += `"${i+1}","${r.expectedDate || ''}","${r.orderId || ''}","${r.id}","${r.sku || ''}","${r.qty || ''}","${r.time || ''}","${r.device || ''}"\n`; 
+    });
+    triggerDownload(csv, `Scanned_Log_${currentlyViewingArchiveDate}.csv`);
+};
+
+window.downloadArchiveMissing = function() {
+    const expected = archiveDataMap[currentlyViewingArchiveDate]?.expected || {};
+    const scans = archiveDataMap[currentlyViewingArchiveDate]?.scans || {};
+    
+    let csv = 'Expected Date,Missing Tracking ID,Order ID,SKU,Qty,Print Link\n';
+    
+    Object.keys(expected).forEach(tid => {
+        if (!scans[tid]) { 
+            const data = expected[tid];
+            const oid = data.oid || '';
+            const link = oid ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${oid}` : '';
+            csv += `"${data.date || ''}","${tid}","${oid}","${data.sku || ''}","${data.qty || ''}","${link}"\n`;
+        }
+    });
+    triggerDownload(csv, `MISSING_Parcels_${currentlyViewingArchiveDate}.csv`);
+};
 
 window.createBackup = function() {
     if (!scannedList.size) alert('Warning: nothing scanned yet.');
@@ -650,7 +909,11 @@ window.restoreBackup = async function(backupId) {
     const target = backups.find(b => b.id === backupId); if (!target) return;
     setCloudStatus('Restoring…', 'syncing'); await remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
     for (const rec of (target.history || [])) {
-        await push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), { id: rec.id, time: rec.time, orderId: expectedMap.get(rec.id) || rec.orderId || '', device: rec.device || 'Restored' });
+        await push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), { 
+            id: rec.id, time: rec.time, orderId: rec.orderId || '', 
+            expectedDate: rec.expectedDate || '', sku: rec.sku || '', qty: rec.qty || '', 
+            device: rec.device || 'Restored' 
+        });
     }
     document.getElementById('backup-modal').style.display = 'none'; showLog('Backup restored!', 'success');
 };
