@@ -123,20 +123,6 @@
     </div>
 </div>
 
-<div id="archive-modal" class="modal-overlay">
-    <div class="modal-content" style="max-width: 450px;">
-        <h2 style="margin-top:0; font-size: 18px;">📅 Archived Day: <span id="archive-modal-date"></span></h2>
-        <p style="font-size: 15px; margin-bottom: 20px; color:#4a5568;">
-            Scanned Tracker: <strong id="archive-scanned-count">0</strong> / <strong id="archive-expected-count">0</strong>
-        </p>
-        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom: 15px;">
-            <button class="btn-primary" onclick="downloadArchiveExcel()">⬇️ Download Scanned List</button>
-            <button class="btn-primary" style="background:var(--danger);" onclick="downloadArchiveMissing()">⬇️ Download Missing Parcels</button>
-        </div>
-        <button class="btn-secondary" style="width:100%;" onclick="document.getElementById('archive-modal').style.display='none'">Close</button>
-    </div>
-</div>
-
 <div id="duplicate-modal" class="modal-overlay">
     <div class="modal-content red-modal" style="text-align:center;">
         <h2 style="color:var(--danger); margin-top:0;">⚠️ DUPLICATE!</h2>
@@ -301,7 +287,6 @@ let activeScansUnsubscribe = null;
 let activeExpectedUnsubscribe = null;
 let activeArchiveUnsubscribe = null;
 let archiveDataMap = {}; 
-let currentlyViewingArchiveDate = "";
 let html5QrCode;
 let isCameraPaused = false;
 
@@ -427,7 +412,7 @@ function attachArchiveListener(flowKey) {
                 }
                 
                 btn.innerText = `📅 ${date} (${scannedCount}/${expectedCount})`;
-                btn.onclick = () => openArchiveModal(date);
+                btn.onclick = () => loadArchiveToLive(date);
                 container.appendChild(btn);
             });
         } else {
@@ -737,6 +722,31 @@ window.saveAndNextDay = async function() {
     markSynced();
 };
 
+window.loadArchiveToLive = async function(date) {
+    if (!archiveDataMap[date]) return;
+
+    if (expectedMap.size > 0 || scannedList.size > 0) {
+        if (!confirm(`⚠️ WARNING: The live floor has active data. Loading the archive for ${date} will overwrite the current live floor. Proceed?`)) return;
+    } else {
+        if (!confirm(`Load archived data for ${date} back to the live floor?`)) return;
+    }
+
+    setCloudStatus('Restoring Archive...', 'syncing');
+
+    const expected = archiveDataMap[date].expected || null;
+    const scans = archiveDataMap[date].scans || null;
+
+    await set(ref(db, `scannerV2/flows/${activeFlowKey}/expected`), expected);
+    await set(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), scans);
+
+    await remove(ref(db, `scannerV2/flows/${activeFlowKey}/archives/${date}`));
+
+    document.getElementById('target-ship-date').value = date;
+
+    showLog(`✅ Archive for ${date} loaded back to live floor!`, 'success');
+    markSynced();
+};
+
 function updateSummaryUI() {
     document.getElementById('scanned-count').innerText = scannedList.size;
     document.getElementById('download-btn').disabled = (scanHistory.length === 0);
@@ -868,49 +878,6 @@ function triggerDownload(content, filename) {
     const a = document.createElement('a'); a.href = url; a.download = filename; a.style.display = 'none';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
-
-window.openArchiveModal = function(date) {
-    if (!archiveDataMap[date]) return;
-    currentlyViewingArchiveDate = date;
-    
-    const expected = archiveDataMap[date].expected || {};
-    const scans = archiveDataMap[date].scans || {};
-    
-    document.getElementById('archive-modal-date').innerText = date;
-    document.getElementById('archive-expected-count').innerText = Object.keys(expected).length;
-    document.getElementById('archive-scanned-count').innerText = Object.keys(scans).length;
-    
-    document.getElementById('archive-modal').style.display = 'block';
-};
-
-window.downloadArchiveExcel = function() {
-    const scans = archiveDataMap[currentlyViewingArchiveDate]?.scans || {};
-    let csv = 'Number,Expected Date,Order ID,Tracking ID,SKU,Qty,Time Scanned,Device\n';
-    
-    const scanArr = Object.values(scans).sort((a, b) => (a.number || 0) - (b.number || 0));
-    
-    scanArr.forEach((r, i) => { 
-        csv += `"${i+1}","${r.expectedDate || ''}","${r.orderId || ''}","${r.id}","${r.sku || ''}","${r.qty || ''}","${r.time || ''}","${r.device || ''}"\n`; 
-    });
-    triggerDownload(csv, `Scanned_Log_${currentlyViewingArchiveDate}.csv`);
-};
-
-window.downloadArchiveMissing = function() {
-    const expected = archiveDataMap[currentlyViewingArchiveDate]?.expected || {};
-    const scans = archiveDataMap[currentlyViewingArchiveDate]?.scans || {};
-    
-    let csv = 'Expected Date,Missing Tracking ID,Order ID,SKU,Qty,Print Link\n';
-    
-    Object.keys(expected).forEach(tid => {
-        if (!scans[tid]) { 
-            const data = expected[tid];
-            const oid = data.oid || '';
-            const link = oid ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${oid}` : '';
-            csv += `"${data.date || ''}","${tid}","${oid}","${data.sku || ''}","${data.qty || ''}","${link}"\n`;
-        }
-    });
-    triggerDownload(csv, `MISSING_Parcels_${currentlyViewingArchiveDate}.csv`);
-};
 
 window.createBackup = function() {
     if (!scannedList.size) alert('Warning: nothing scanned yet.');
