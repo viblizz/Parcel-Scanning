@@ -2,78 +2,113 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Cloud Parcel Scanner Pro – Multi-Device</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        :root {
+            --primary: #0056b3;
+            --primary-hover: #004494;
+            --secondary: #6c757d;
+            --secondary-hover: #5a6268;
+            --success: #28a745;
+            --danger: #dc3545;
+            --danger-hover: #c82333;
+            --warning-bg: #fff5f5;
+            --warning-border: #feb2b2;
+            --warning-text: #9b2c2c;
+            --radius: 8px;
+        }
 
-        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
-        .header-bar h1 { margin: 0; color: #333; font-size: 24px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 12px; background-color: #f7fafc; margin: 0; color: #2d3748; }
+        .container { max-width: 850px; margin: auto; background: white; padding: 16px; border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+        .header-bar h1 { margin: 0; color: #1a202c; font-size: 22px; font-weight: 700; }
 
         .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-        .cloud-status { font-size: 14px; padding: 5px 12px; background: #d4edda; color: #155724; border-radius: 20px; font-weight: bold; border: 1px solid #c3e6cb; transition: background 0.3s; }
-        .cloud-status.syncing { background: #cce5ff; color: #004085; border-color: #b8daff; }
-        .cloud-status.error   { background: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+        .cloud-status { font-size: 13px; padding: 6px 14px; background: #e6fffa; color: #234e52; border-radius: 20px; font-weight: bold; border: 1px solid #b2f5ea; transition: background 0.3s; }
+        .cloud-status.syncing { background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8; }
+        .cloud-status.error   { background: #fff5f5; color: #9b2c2c; border-color: #fed7d7; }
 
-        .sync-bar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; }
-        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; display: inline-block; }
-        .sync-dot.live { background: #28a745; animation: pulse 1.5s infinite; }
+        .sync-bar { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #718096; }
+        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e0; display: inline-block; }
+        .sync-dot.live { background: var(--success); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        .last-sync-text { font-size: 12px; color: #888; }
+        .last-sync-text { font-size: 11px; color: #a0aec0; }
 
-        .flow-controls { display: flex; gap: 10px; align-items: center; background: #eef; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-top: 10px; flex-wrap: wrap; }
-        select { padding: 8px; font-size: 16px; border-radius: 4px; font-weight: bold; }
+        .flow-controls { display: flex; gap: 8px; align-items: center; background: #ebf4ff; padding: 12px; border-radius: var(--radius); border: 1px solid #bee3f8; margin-top: 8px; flex-wrap: wrap; }
+        select { padding: 10px; font-size: 15px; border-radius: 6px; font-weight: 600; border: 1px solid #cbd5e0; background: white; max-width: 100%; }
 
-        .section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
-        textarea, input[type="text"], input[type="date"] { width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { padding: 10px 15px; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #edf2f7; }
+        .section h3 { margin-top: 0; font-size: 16px; color: #4a5568; font-weight: 600; }
+        
+        textarea, input[type="text"], input[type="date"] { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 15px; background: #fff; }
+        textarea:focus, input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(66,153,225,0.15); }
+        
+        button { padding: 12px 16px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        button:active { transform: scale(0.98); }
 
-        .btn-primary   { background: #0056b3; }
-        .btn-primary:hover { background: #004494; }
-        .btn-secondary { background: #6c757d; }
-        .btn-secondary:hover { background: #5a6268; }
-        .btn-danger-sm { background: #dc3545; }
-        .btn-danger-sm:hover { background: #c82333; }
+        .btn-primary   { background: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: var(--secondary); }
+        .btn-secondary:hover { background: var(--secondary-hover); }
+        .btn-danger-sm { background: var(--danger); }
+        .btn-danger-sm:hover { background: var(--danger-hover); }
 
-        #download-btn { background: #28a745; margin-right: 10px; }
-        #download-btn:disabled { background: #ccc; cursor: not-allowed; }
+        #download-btn { background: var(--success); }
+        #download-btn:disabled { background: #cbd5e0; cursor: not-allowed; transform: none; }
         #finish-btn { background: #17a2b8; }
-        #backup-btn { background: #ff9800; margin-right: 10px; }
-        #view-backup-btn { background: #6f42c1; }
+        #backup-btn { background: #xff9800; background-color: #dd6b20; }
 
-        .filter-box { background: #e2e3e5; padding: 10px; border-radius: 4px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: #383d41; flex-wrap: wrap; gap: 8px; }
-        .filter-left { display: flex; align-items: center; gap: 10px; }
-        .filter-box input[type="date"] { width: auto; margin-top: 0; padding: 5px; }
-        .filter-box input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        .filter-box { background: #edf2f7; padding: 12px; border-radius: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #4a5568; flex-wrap: wrap; gap: 12px; }
+        .filter-left { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .filter-box input[type="date"] { width: auto; margin-top: 0; padding: 6px; font-size: 14px; }
+        .filter-box input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; margin: 0; }
 
-        .scanner-wrapper { position: relative; }
-        #active-flow-label { position: absolute; top: 50%; right: 160px; transform: translateY(-50%); background: #0056b3; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; white-space: nowrap; }
-        #scanner-input { font-size: 24px; background-color: #eef; transition: background-color 0.3s; padding-right: 310px; width: 100%; box-sizing: border-box; margin-top: 0; }
-        #scanner-input:disabled { background-color: #ccc; cursor: not-allowed; }
+        .scanner-wrapper { position: relative; display: flex; gap: 8px; width: 100%; }
+        #scanner-input { font-size: 20px; background-color: #f7fafc; padding-right: 120px; width: 100%; box-sizing: border-box; margin-top: 0; height: 50px; }
+        #scanner-input:disabled { background-color: #e2e8f0; cursor: not-allowed; }
+        #active-flow-label { position: absolute; right: 125px; top: 50%; transform: translateY(-50%); background: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; white-space: nowrap; max-width: 100px; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 
-        #log { margin-top: 10px; padding: 10px; font-weight: bold; border-radius: 4px; }
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        #log { margin-top: 10px; padding: 12px; font-weight: 600; border-radius: 6px; font-size: 14px; }
+        .success { background-color: #c6f6d5; color: #22543d; border: 1px solid #9ae6b4; }
+        .warning { background-color: #feebc8; color: #744210; border: 1px solid #fbd38d; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
+        .responsive-table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; -webkit-overflow-scrolling: touch; border: 1px solid #e2e8f0; border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; font-size: 14px; }
+        th, td { border-bottom: 1px solid #e2e8f0; padding: 12px 10px; text-align: left; vertical-align: middle; }
+        th { background-color: #f7fafc; color: #4a5568; font-weight: 600; }
+        
+        .late-row-highlight { background-color: var(--warning-bg) !important; color: var(--warning-text); }
+        .late-row-highlight td { border-bottom-color: var(--warning-border); }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; text-align: center; }
-        .modal-content { background: white; margin: 10% auto; padding: 40px; width: 90%; max-width: 650px; border-radius: 8px; }
-        .red-modal { border: 8px solid #dc3545; }
-        .yellow-modal { border: 8px solid #ffc107; }
-        .blue-modal { border: 8px solid #17a2b8; max-width: 850px; text-align: left; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; padding: 10px; box-sizing: border-box; overflow-y: auto; }
+        .modal-content { background: white; margin: 30px auto; padding: 20px; width: 100%; max-width: 650px; border-radius: var(--radius); box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .red-modal { border-top: 6px solid var(--danger); }
+        .yellow-modal { border-top: 6px solid #dd6b20; }
+        .blue-modal { border-top: 6px solid #17a2b8; max-width: 800px; }
         
         #camera-modal { z-index: 900; }
-        #reader { width: 100%; min-height: 300px; background: #000; border-radius: 8px; overflow: hidden; }
-        .button-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
-        #flash-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(40, 167, 69, 0.7); z-index: 9999; pointer-events: none; transition: opacity 0.2s; }
-        .missing-checkbox { width: 20px; height: 20px; cursor: pointer; }
-        .multidev-banner { background: #e8f4fd; border: 1px solid #bee3f8; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #2c5282; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        #reader { width: 100%; min-height: 280px; background: #000; border-radius: var(--radius); overflow: hidden; }
+        .button-group { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; width: 100%; }
+        
+        #flash-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(40, 167, 69, 0.4); z-index: 9999; pointer-events: none; transition: opacity 0.15s; }
+        .missing-checkbox { width: 24px; height: 24px; cursor: pointer; margin: 0; }
+        .multidev-banner { background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #2b6cb0; margin-bottom: 12px; font-weight: 500; }
+
+        @media (max-width: 600px) {
+            body { padding: 6px; }
+            .container { padding: 12px; }
+            .header-bar h1 { font-size: 18px; }
+            button { width: 100%; }
+            .button-group button { width: 100%; margin-left: 0 !important; }
+            .filter-box { flex-direction: column; align-items: flex-start; }
+            .filter-left { width: 100%; justify-content: space-between; }
+            #scanner-input { padding-right: 100px; font-size: 16px; }
+            #active-flow-label { right: 105px; max-width: 60px; font-size: 10px; }
+            .modal-content { margin: 10px auto; padding: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -81,55 +116,55 @@
 <div id="flash-overlay"></div>
 
 <div id="backup-modal" class="modal-overlay">
-    <div class="modal-content" style="max-width:600px;text-align:left;">
-        <h2>💾 Saved Backups</h2>
-        <div id="backup-list" style="max-height:300px;overflow-y:auto;border:1px solid #ccc;padding:10px;margin-bottom:15px;"></div>
+    <div class="modal-content" style="max-width:600px;">
+        <h2 style="margin-top:0; font-size: 18px;">💾 Saved Backups</h2>
+        <div id="backup-list" style="max-height:280px;overflow-y:auto;border:1px solid #e2e8f0;padding:10px;margin-bottom:15px;border-radius:6px;"></div>
         <button class="btn-secondary" style="width:100%" onclick="document.getElementById('backup-modal').style.display='none'">Close</button>
     </div>
 </div>
 
 <div id="archive-modal" class="modal-overlay">
-    <div class="modal-content" style="max-width: 500px; text-align:left;">
-        <h2>📅 Archived Day: <span id="archive-modal-date"></span></h2>
-        <p style="font-size: 16px; margin-bottom: 20px;">
-            Scanned: <strong id="archive-scanned-count">0</strong> / <strong id="archive-expected-count">0</strong>
+    <div class="modal-content" style="max-width: 450px;">
+        <h2 style="margin-top:0; font-size: 18px;">📅 Archived Day: <span id="archive-modal-date"></span></h2>
+        <p style="font-size: 15px; margin-bottom: 20px; color:#4a5568;">
+            Scanned Tracker: <strong id="archive-scanned-count">0</strong> / <strong id="archive-expected-count">0</strong>
         </p>
-        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom: 20px;">
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom: 15px;">
             <button class="btn-primary" onclick="downloadArchiveExcel()">⬇️ Download Scanned List</button>
-            <button class="btn-primary" style="background:#dc3545;" onclick="downloadArchiveMissing()">⬇️ Download Missing Parcels</button>
+            <button class="btn-primary" style="background:var(--danger);" onclick="downloadArchiveMissing()">⬇️ Download Missing Parcels</button>
         </div>
         <button class="btn-secondary" style="width:100%;" onclick="document.getElementById('archive-modal').style.display='none'">Close</button>
     </div>
 </div>
 
 <div id="duplicate-modal" class="modal-overlay">
-    <div class="modal-content red-modal">
-        <h2>⚠️ DUPLICATE!</h2>
-        <p style="font-size: 18px; margin-bottom: 20px;">Barcode: <strong id="duplicate-id-text"></strong></p>
-        <button class="btn-danger-sm" onclick="resumeScanning('duplicate-modal')">OK</button>
+    <div class="modal-content red-modal" style="text-align:center;">
+        <h2 style="color:var(--danger); margin-top:0;">⚠️ DUPLICATE!</h2>
+        <p style="font-size: 16px; margin-bottom: 20px;">Barcode: <strong id="duplicate-id-text"></strong></p>
+        <button class="btn-danger-sm" style="width:100%;" onclick="resumeScanning('duplicate-modal')">OK</button>
     </div>
 </div>
 
 <div id="invalid-modal" class="modal-overlay">
-    <div class="modal-content yellow-modal">
-        <h2>⚠️ INVALID!</h2>
-        <p style="font-size: 18px; margin-bottom: 20px;">Barcode: <strong id="invalid-id-text"></strong></p>
-        <button class="btn-secondary" onclick="resumeScanning('invalid-modal')">OK</button>
+    <div class="modal-content yellow-modal" style="text-align:center;">
+        <h2 style="color:#dd6b20; margin-top:0;">⚠️ INVALID!</h2>
+        <p style="font-size: 16px; margin-bottom: 20px;">Barcode: <strong id="invalid-id-text"></strong></p>
+        <button class="btn-secondary" style="width:100%;" onclick="resumeScanning('invalid-modal')">OK</button>
     </div>
 </div>
 
 <div id="missing-modal" class="modal-overlay">
     <div class="modal-content blue-modal">
-        <h2 style="text-align:center;">📋 Missing Parcels (<span id="missing-flow-name"></span>)</h2>
-        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:15px;">
+        <h2 style="text-align:center; margin-top:0; font-size: 18px;">📋 Missing Parcels (<span id="missing-flow-name"></span>)</h2>
+        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:15px;flex-wrap:wrap;">
             <button id="copy-print-btn" class="btn-primary" onclick="copyBulkLinks('print')">📋 Copy All Print Links</button>
             <button id="copy-order-btn" class="btn-primary" onclick="copyBulkLinks('order')">📋 Copy All Order Links</button>
         </div>
-        <div style="max-height:350px;overflow-y:auto;background:#f8f9fa;">
+        <div style="max-height:300px;overflow-y:auto;background:#f7fafc;border:1px solid #e2e8f0;border-radius:6px;" class="responsive-table-wrapper">
             <table id="missing-table">
-                <thead style="position:sticky;top:0;background:#e9ecef;z-index:1;">
+                <thead style="position:sticky;top:0;background:#edf2f7;z-index:1;">
                     <tr>
-                        <th style="width:30px;text-align:center;">✓</th>
+                        <th style="width:40px;text-align:center;">✓</th>
                         <th>Date</th>
                         <th>Order ID</th>
                         <th>Tracking ID</th>
@@ -148,21 +183,21 @@
 </div>
 
 <div id="camera-modal" class="modal-overlay">
-    <div class="modal-content"><button class="btn-danger-sm" onclick="stopCamera()">✖ Close</button><div id="reader"></div></div>
+    <div class="modal-content" style="max-width:500px;"><button class="btn-danger-sm" style="width:100%; margin-bottom:10px;" onclick="stopCamera()">✖ Close Camera</button><div id="reader"></div></div>
 </div>
 
 <div class="container">
     <div class="header-bar">
         <h1>☁️ Cloud Scanner Pro</h1>
         <div class="header-right">
-            <div id="cloud-status">Connecting…</div>
+            <div id="cloud-status" class="cloud-status">Connecting…</div>
             <div class="sync-bar">
                 <span id="sync-dot" class="sync-dot"></span>
                 <span id="last-sync-text" class="last-sync-text">Waiting to sync...</span>
             </div>
         </div>
     </div>
-    <div class="multidev-banner">🔗 <strong>Multi-Device Sync Active.</strong></div>
+    <div class="multidev-banner">🔗 Multi-Device Sync Active.</div>
     
     <div class="flow-controls">
         <select id="flow-selector" onchange="switchFlow()"></select>
@@ -170,10 +205,10 @@
         <button class="btn-danger-sm" onclick="deleteCurrentFlow()">🗑️</button>
     </div>
 
-    <div style="margin-bottom: 15px; margin-top: 15px;">
-        <h4 style="margin: 0 0 8px 0; color: #555; font-size: 14px;">⏪ Previous 3 Days Archives:</h4>
-        <div id="history-tabs-container" style="display:flex; gap:10px; overflow-x:auto; padding-bottom: 5px;">
-            <span style="color:#888; font-size: 13px; font-style: italic;">Loading archives...</span>
+    <div style="margin-bottom: 16px; margin-top: 16px;">
+        <h4 style="margin: 0 0 8px 0; color: #4a5568; font-size: 13px; font-weight:600;">⏪ Previous 3 Days Archives:</h4>
+        <div id="history-tabs-container" style="display:flex; gap:8px; overflow-x:auto; padding-bottom: 6px; -webkit-overflow-scrolling:touch;">
+            <span style="color:#718096; font-size: 13px; font-style: italic;">Loading archives...</span>
         </div>
     </div>
 
@@ -183,17 +218,17 @@
             <div class="filter-left">
                 <input type="checkbox" id="use-date-filter" checked> Only load parcels on: <input type="date" id="target-ship-date">
             </div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:8px;" class="button-group">
                 <input type="file" id="file-upload" accept=".txt,.csv" style="display:none;" onchange="handleFileUpload(event)">
-                <button class="btn-primary" style="margin-top:0;" onclick="document.getElementById('file-upload').click()">📁 Upload .txt / .csv</button>
+                <button class="btn-primary" onclick="document.getElementById('file-upload').click()">📁 Upload .txt / .csv</button>
                 <input type="file" id="reverse-file-upload" accept=".txt,.csv" style="display:none;" onchange="handleReverseFileUpload(event)">
-                <button style="background:#dc3545;margin-top:0;" onclick="document.getElementById('reverse-file-upload').click()">📁 Reverse File</button>
+                <button style="background:var(--danger);" onclick="document.getElementById('reverse-file-upload').click()">📁 Reverse File</button>
             </div>
         </div>
-        <textarea id="expected-ids" rows="5"></textarea>
+        <textarea id="expected-ids" rows="4" placeholder="Or paste tracking details here..."></textarea>
         <div class="button-group">
             <button class="btn-primary" onclick="addExpectedIDsFromPaste()">➕ Add Pasted Data</button>
-            <button class="btn-primary" style="background:#28a745;" onclick="saveAndNextDay()">⏭️ Save & Next Day</button>
+            <button class="btn-primary" style="background:var(--success);" onclick="saveAndNextDay()">⏭️ Save & Next Day</button>
             <button class="btn-secondary" style="margin-left: auto;" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
         </div>
     </div>
@@ -201,38 +236,40 @@
     <div class="section">
         <h3>2. Scan Parcels</h3>
         <div class="scanner-wrapper">
-            <input type="text" id="scanner-input" placeholder="Scan barcode..." autofocus>
+            <input type="text" id="scanner-input" placeholder="Scan barcode..." autofocus autocomplete="off">
             <div id="active-flow-label">Target: —</div>
-            <button class="btn-primary" onclick="startCamera()" style="padding:10px 20px;font-size:18px;background:#28a745;margin-top:0;white-space:nowrap; position: absolute; right: 0; top: 0; height: 100%;">📷 Camera</button>
+            <button class="btn-primary" onclick="startCamera()" style="background:var(--success); margin-top:0; height: 50px; width:110px;">📷 Camera</button>
         </div>
         <div id="log" style="display:none;"></div>
     </div>
 
     <div class="section" style="border-bottom:none;">
         <h3>3. Summary (<span id="scanned-count">0</span> / <span id="total-expected">0</span>)</h3>
-        <div class="button-group" style="margin-bottom:10px;">
+        <div class="button-group" style="margin-bottom:12px;">
             <button id="backup-btn" onclick="createBackup()">💾 Save Backup Snapshot</button>
             <button id="view-backup-btn" onclick="showBackups()">📂 View Backups</button>
         </div>
-        <div class="button-group">
+        <div class="button-group" style="margin-bottom:16px;">
             <button id="download-btn" onclick="downloadExcel()" disabled>⬇️ Download List</button>
             <button id="finish-btn" onclick="checkRemaining()">🏁 Finish & Check Missing</button>
         </div>
-        <table id="history-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Date</th>
-                    <th>Order ID</th>
-                    <th>Tracking ID</th>
-                    <th>Product SKU</th>
-                    <th>Qty</th>
-                    <th>Time Scanned</th>
-                    <th>Device</th>
-                </tr>
-            </thead>
-            <tbody id="history-body"></tbody>
-        </table>
+        <div class="responsive-table-wrapper">
+            <table id="history-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">#</th>
+                        <th>Date</th>
+                        <th>Order ID</th>
+                        <th>Tracking ID</th>
+                        <th>Product SKU</th>
+                        <th style="width:50px;">Qty</th>
+                        <th>Time Scanned</th>
+                        <th>Device</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -381,7 +418,7 @@ function attachArchiveListener(flowKey) {
                 const isComplete = (expectedCount > 0 && expectedCount === scannedCount);
 
                 const btn = document.createElement('button');
-                btn.style.cssText = `padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; border: 1px solid #ccc; cursor: pointer; white-space: nowrap; transition: 0.2s;`;
+                btn.style.cssText = `padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; border: 1px solid #ccc; cursor: pointer; white-space: nowrap; transition: 0.2s; min-height:36px; width:auto;`;
                 
                 if (isComplete) {
                     btn.style.background = '#d4edda'; btn.style.color = '#155724'; btn.style.borderColor = '#c3e6cb';
@@ -551,7 +588,6 @@ function processRawText(text, sourceName) {
 
                 if (!tid || /^(tracking.?id)$/i.test(tid)) continue;
                 
-                // Store as object for Seller Flex to keep map uniform
                 if (!expectedMap.has(tid)) { expectedMap.set(tid, { oid: oid, date: '', sku: '', qty: '' }); added++; }
             }
         } else {
@@ -560,7 +596,6 @@ function processRawText(text, sourceName) {
         }
 
     } else {
-        // --- STRICT SMART PARSER FOR STANDARD AMAZON FILES ---
         let headerIdx = 0;
         while (headerIdx < lines.length && !lines[headerIdx].trim()) headerIdx++;
         if (headerIdx >= lines.length) return;
@@ -606,7 +641,6 @@ function processRawText(text, sourceName) {
                 if (dateStr) {
                     shortDate = dateStr.substring(0, 10); 
                     if (useDateFilter && shortDate) {
-                        // Skip future dates, but KEEP today and all past dates
                         if (shortDate > targetDate) { 
                             skipped++; 
                             continue; 
@@ -714,20 +748,19 @@ function updateSummaryUI() {
         const rec = scanHistory[i]; const isNew = i === scanHistory.length - 1;
         const row = document.createElement('tr'); if (isNew) row.className = 'new-row';
         
-        let dateHtml = `<span style="font-size:12px;color:#555;">${rec.expectedDate || '—'}</span>`;
         if (rec.expectedDate && rec.expectedDate < actualToday) {
-            dateHtml = `<span style="background:#f8d7da; color:#721c24; font-weight:bold; border:1px solid #f5c6cb; border-radius:4px; padding:3px 6px; font-size:12px; white-space:nowrap;">⚠️ LATE: ${rec.expectedDate}</span>`;
+            row.classList.add('late-row-highlight');
         }
 
         row.innerHTML = `
             <td>${rec.number}</td>
-            <td>${dateHtml}</td>
+            <td><span style="font-size:12px; font-weight:600;">${rec.expectedDate || '—'}</span></td>
             <td>${rec.orderId || '—'}</td>
             <td><strong>${rec.id}</strong></td>
             <td><span style="font-size:12px;">${rec.sku || '—'}</span></td>
-            <td>${rec.qty || '—'}</td>
-            <td><span style="font-size:12px;">${rec.time}</span></td>
-            <td><span style="background:#e9ecef;border-radius:4px;padding:2px 6px;font-size:12px;">${rec.device || '?'}</span></td>`;
+            <td><strong>${rec.qty || '—'}</strong></td>
+            <td><span style="font-size:12px; color:#718096;">${rec.time}</span></td>
+            <td><span style="background:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:12px;color:#4a5568;">${rec.device || '?'}</span></td>`;
         tbody.appendChild(row);
     }
 }
@@ -777,29 +810,28 @@ window.checkRemaining = function() {
         const printLink = orderId ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${orderId}` : '';
         const orderDetailLink = orderId ? `https://sellercentral.amazon.in/orders-v3/order/${orderId}` : '';
         
-        let dateDisplay = `<span style="font-size:12px;color:#555;">${expectedDate || '—'}</span>`;
+        const tr = document.createElement('tr');
         if (expectedDate && expectedDate < actualToday) {
-            dateDisplay = `<span style="background:#f8d7da; color:#721c24; font-weight:bold; border:1px solid #f5c6cb; border-radius:4px; padding:3px 6px; font-size:12px; white-space:nowrap;">⚠️ LATE: ${expectedDate}</span>`;
+            tr.classList.add('late-row-highlight');
         }
         
-        const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td style="text-align:center;border-bottom:1px solid #ddd;">
+            <td style="text-align:center;">
                 ${orderId ? `<input type="checkbox" class="missing-checkbox" data-print-link="${printLink}" data-order-link="${orderDetailLink}" onchange="updateBulkCopyButtons()">` : ''}
             </td>
-            <td style="border-bottom:1px solid #ddd; vertical-align:middle;">
-                ${dateDisplay}
+            <td>
+                <span style="font-size:12px; font-weight:600;">${expectedDate || '—'}</span>
             </td>
-            <td style="border-bottom:1px solid #ddd; vertical-align:middle;">
-                ${orderId ? `<a href="${orderDetailLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${orderId}</a>` : '<span style="color:#999;font-size:12px;">Unknown</span>'}
+            <td>
+                ${orderId ? `<a href="${orderDetailLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${orderId}</a>` : '<span style="color:#a0aec0;font-size:12px;">Unknown</span>'}
             </td>
-            <td style="border-bottom:1px solid #ddd; vertical-align:middle;">
+            <td>
                 ${printLink ? `<a href="${printLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${tid}</a>` : `<strong>${tid}</strong>`}
             </td>
-            <td style="border-bottom:1px solid #ddd; vertical-align:middle; font-size:12px; max-width:200px; word-wrap:break-word;">
+            <td style="font-size:12px; max-width:180px; word-wrap:break-word;">
                 ${sku}
             </td>
-            <td style="border-bottom:1px solid #ddd; vertical-align:middle; text-align:center; font-weight:bold;">
+            <td style="text-align:center; font-weight:bold;">
                 ${qty}
             </td>`;
         container.appendChild(tr);
@@ -895,8 +927,8 @@ window.showBackups = function() {
     if (!backups.length) list.innerHTML = '<p style="text-align:center;color:#666;">No backups saved yet.</p>';
     else {
         [...backups].reverse().forEach(b => {
-            const div = document.createElement('div'); div.style.cssText = 'border-bottom:1px solid #ddd;padding:12px 0;';
-            div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;"><div><strong>${b.time}</strong><br><span style="font-size:14px;color:#555;">Company: ${b.flow}</span><br><span style="color:#28a745;font-weight:bold;font-size:14px;">✓ ${b.scannedCount} items</span></div><button onclick="restoreBackup(${b.id})" style="background:#17a2b8;color:white;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;font-weight:bold;">Restore to Cloud</button></div>`;
+            const div = document.createElement('div'); div.style.cssText = 'border-bottom:1px solid #e2e8f0;padding:12px 0;';
+            div.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;"><div><strong>${b.time}</strong><br><span style="font-size:13px;color:#4a5568;">Company: ${b.flow}</span><br><span style="color:var(--success);font-weight:bold;font-size:13px;">✓ ${b.scannedCount} items</span></div><button onclick="restoreBackup(${b.id})" style="background:#17a2b8;color:white;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;font-weight:bold;width:100%;">Restore to Cloud</button></div>`;
             list.appendChild(div);
         });
     }
