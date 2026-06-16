@@ -20,33 +20,37 @@
             --radius: 8px;
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 12px; background-color: #f7fafc; margin: 0; color: #2d3748; }
-        .container { max-width: 850px; margin: auto; background: white; padding: 16px; border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; background-color: #f7fafc; margin: 0; color: #2d3748; }
+        
+        /* DESKTOP OPTIMIZED CONTAINER */
+        .container { width: 100%; max-width: 1200px; margin: auto; background: white; padding: 24px; border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.05); box-sizing: border-box; }
 
-        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
-        .header-bar h1 { margin: 0; color: #1a202c; font-size: 22px; font-weight: 700; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .header-bar h1 { margin: 0; color: #1a202c; font-size: 26px; font-weight: 700; }
 
-        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-        .cloud-status { font-size: 13px; padding: 6px 14px; background: #e6fffa; color: #234e52; border-radius: 20px; font-weight: bold; border: 1px solid #b2f5ea; transition: background 0.3s; }
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        .cloud-status { font-size: 14px; padding: 6px 14px; background: #e6fffa; color: #234e52; border-radius: 20px; font-weight: bold; border: 1px solid #b2f5ea; transition: background 0.3s; text-align: center; }
         .cloud-status.syncing { background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8; }
         .cloud-status.error   { background: #fff5f5; color: #9b2c2c; border-color: #fed7d7; }
 
-        .sync-bar { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #718096; }
+        .sync-bar { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #718096; }
         .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e0; display: inline-block; }
         .sync-dot.live { background: var(--success); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        .last-sync-text { font-size: 11px; color: #a0aec0; }
+        .last-sync-text { font-size: 12px; color: #a0aec0; }
 
-        .flow-controls { display: flex; gap: 8px; align-items: center; background: #ebf4ff; padding: 12px; border-radius: var(--radius); border: 1px solid #bee3f8; margin-top: 8px; flex-wrap: wrap; }
-        select { padding: 10px; font-size: 15px; border-radius: 6px; font-weight: 600; border: 1px solid #cbd5e0; background: white; max-width: 100%; }
+        .multidev-banner { background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 6px; padding: 12px 16px; font-size: 14px; color: #2b6cb0; margin-bottom: 16px; font-weight: 500; }
 
-        .section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #edf2f7; }
-        .section h3 { margin-top: 0; font-size: 16px; color: #4a5568; font-weight: 600; }
+        .flow-controls { display: flex; gap: 10px; align-items: center; background: #ebf4ff; padding: 16px; border-radius: var(--radius); border: 1px solid #bee3f8; margin-top: 8px; flex-wrap: wrap; }
+        select { flex: 1; min-width: 200px; padding: 12px; font-size: 16px; border-radius: 6px; font-weight: 600; border: 1px solid #cbd5e0; background: white; }
+
+        .section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #edf2f7; }
+        .section h3 { margin-top: 0; font-size: 18px; color: #4a5568; font-weight: 600; margin-bottom: 12px; }
         
-        textarea, input[type="text"], input[type="date"] { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 15px; background: #fff; }
+        textarea, input[type="text"], input[type="date"] { width: 100%; padding: 14px; margin-top: 8px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 16px; background: #fff; }
         textarea:focus, input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(66,153,225,0.15); }
         
-        button { padding: 12px 16px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        button { padding: 12px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 15px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; }
         button:active { transform: scale(0.98); }
 
         .btn-primary   { background: var(--primary); }
@@ -59,55 +63,77 @@
         #download-btn { background: var(--success); }
         #download-btn:disabled { background: #cbd5e0; cursor: not-allowed; transform: none; }
         #finish-btn { background: #17a2b8; }
-        #backup-btn { background: #xff9800; background-color: #dd6b20; }
+        #backup-btn { background: #dd6b20; }
 
-        .filter-box { background: #edf2f7; padding: 12px; border-radius: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #4a5568; flex-wrap: wrap; gap: 12px; }
-        .filter-left { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-        .filter-box input[type="date"] { width: auto; margin-top: 0; padding: 6px; font-size: 14px; }
-        .filter-box input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; margin: 0; }
+        /* FLUID BUTTON GROUPS */
+        .button-group { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; align-items: stretch; width: 100%; }
+        .button-group.right-align { justify-content: flex-end; }
+        .push-right { margin-left: auto; }
 
-        .scanner-wrapper { position: relative; display: flex; gap: 8px; width: 100%; }
-        #scanner-input { font-size: 20px; background-color: #f7fafc; padding-right: 120px; width: 100%; box-sizing: border-box; margin-top: 0; height: 50px; }
+        .filter-box { background: #edf2f7; padding: 16px; border-radius: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #4a5568; flex-wrap: wrap; gap: 16px; }
+        .filter-left { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+        .filter-box input[type="date"] { width: auto; margin-top: 0; padding: 8px; font-size: 15px; }
+        .filter-box input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; margin: 0; }
+
+        /* RESPONSIVE SCANNER WRAPPER */
+        #active-flow-label { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+        .scanner-wrapper { display: flex; gap: 10px; width: 100%; align-items: stretch; }
+        #scanner-input { flex: 1; font-size: 22px; background-color: #f7fafc; padding: 16px; margin: 0; height: 60px; min-width: 0; }
         #scanner-input:disabled { background-color: #e2e8f0; cursor: not-allowed; }
-        #active-flow-label { position: absolute; right: 125px; top: 50%; transform: translateY(-50%); background: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; white-space: nowrap; max-width: 100px; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+        .camera-btn { background: var(--success); margin: 0; height: 60px; font-size: 18px; padding: 0 24px; flex-shrink: 0; }
 
-        #log { margin-top: 10px; padding: 12px; font-weight: 600; border-radius: 6px; font-size: 14px; }
+        #log { margin-top: 12px; padding: 16px; font-weight: 600; border-radius: 6px; font-size: 15px; }
         .success { background-color: #c6f6d5; color: #22543d; border: 1px solid #9ae6b4; }
         .warning { background-color: #feebc8; color: #744210; border: 1px solid #fbd38d; }
 
-        .responsive-table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; -webkit-overflow-scrolling: touch; border: 1px solid #e2e8f0; border-radius: 6px; }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; font-size: 14px; }
-        th, td { border-bottom: 1px solid #e2e8f0; padding: 12px 10px; text-align: left; vertical-align: middle; }
-        th { background-color: #f7fafc; color: #4a5568; font-weight: 600; }
+        /* RESPONSIVE TABLES */
+        .responsive-table-wrapper { width: 100%; overflow-x: auto; margin-top: 20px; -webkit-overflow-scrolling: touch; border: 1px solid #e2e8f0; border-radius: 6px; background: white; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; font-size: 14px; }
+        th, td { border-bottom: 1px solid #e2e8f0; padding: 14px 12px; text-align: left; vertical-align: middle; }
+        th { background-color: #f7fafc; color: #4a5568; font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
         
         .late-row-highlight { background-color: var(--warning-bg) !important; color: var(--warning-text); }
         .late-row-highlight td { border-bottom-color: var(--warning-border); }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; padding: 10px; box-sizing: border-box; overflow-y: auto; }
-        .modal-content { background: white; margin: 30px auto; padding: 20px; width: 100%; max-width: 650px; border-radius: var(--radius); box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .red-modal { border-top: 6px solid var(--danger); }
-        .yellow-modal { border-top: 6px solid #dd6b20; }
-        .blue-modal { border-top: 6px solid #17a2b8; max-width: 800px; }
+        /* MOBILE OPTIMIZED MODALS */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; padding: 16px; box-sizing: border-box; overflow-y: auto; display: flex; align-items: center; justify-content: center; }
+        .modal-overlay:not(.active) { display: none; }
+        .modal-content { background: white; padding: 24px; width: 100%; max-width: 800px; border-radius: var(--radius); box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; display: flex; flex-direction: column; }
+        .red-modal { border-top: 8px solid var(--danger); max-width: 450px; text-align: center; }
+        .yellow-modal { border-top: 8px solid #dd6b20; max-width: 450px; text-align: center; }
+        .blue-modal { border-top: 8px solid #17a2b8; max-width: 900px; }
         
         #camera-modal { z-index: 900; }
-        #reader { width: 100%; min-height: 280px; background: #000; border-radius: var(--radius); overflow: hidden; }
-        .button-group { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; width: 100%; }
+        #reader { width: 100%; min-height: 300px; background: #000; border-radius: var(--radius); overflow: hidden; }
         
         #flash-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(40, 167, 69, 0.4); z-index: 9999; pointer-events: none; transition: opacity 0.15s; }
         .missing-checkbox { width: 24px; height: 24px; cursor: pointer; margin: 0; }
-        .multidev-banner { background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #2b6cb0; margin-bottom: 12px; font-weight: 500; }
 
-        @media (max-width: 600px) {
-            body { padding: 6px; }
-            .container { padding: 12px; }
-            .header-bar h1 { font-size: 18px; }
-            button { width: 100%; }
-            .button-group button { width: 100%; margin-left: 0 !important; }
-            .filter-box { flex-direction: column; align-items: flex-start; }
-            .filter-left { width: 100%; justify-content: space-between; }
-            #scanner-input { padding-right: 100px; font-size: 16px; }
-            #active-flow-label { right: 105px; max-width: 60px; font-size: 10px; }
-            .modal-content { margin: 10px auto; padding: 16px; }
+        #history-tabs-container button { padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 1px solid #ccc; cursor: pointer; white-space: nowrap; transition: 0.2s; min-height: 40px; width: auto; flex-shrink: 0; }
+
+        /* MOBILE MEDIA QUERIES */
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .container { padding: 16px; margin: 0 auto; border-radius: 12px; }
+            .header-bar { flex-direction: column; align-items: flex-start; }
+            .header-right { width: 100%; align-items: flex-start; flex-direction: row; justify-content: space-between; margin-top: 8px; }
+            
+            .flow-controls { flex-direction: column; align-items: stretch; }
+            .flow-controls select, .flow-controls button { width: 100%; }
+            
+            .filter-box { flex-direction: column; align-items: stretch; }
+            .filter-left { flex-direction: column; align-items: flex-start; }
+            
+            /* Stack buttons on mobile */
+            .button-group { flex-direction: column; }
+            .button-group button { width: 100%; }
+            .push-right { margin-left: 0; }
+            
+            /* Stack Scanner Input and Camera button */
+            .scanner-wrapper { flex-direction: column; }
+            .camera-btn { width: 100%; }
+
+            .modal-content { padding: 16px; margin: auto; }
         }
     </style>
 </head>
@@ -115,40 +141,41 @@
 
 <div id="flash-overlay"></div>
 
+<!-- MODALS -->
 <div id="backup-modal" class="modal-overlay">
     <div class="modal-content" style="max-width:600px;">
-        <h2 style="margin-top:0; font-size: 18px;">💾 Saved Backups</h2>
-        <div id="backup-list" style="max-height:280px;overflow-y:auto;border:1px solid #e2e8f0;padding:10px;margin-bottom:15px;border-radius:6px;"></div>
-        <button class="btn-secondary" style="width:100%" onclick="document.getElementById('backup-modal').style.display='none'">Close</button>
+        <h2 style="margin-top:0; font-size: 20px;">💾 Saved Backups</h2>
+        <div id="backup-list" style="overflow-y:auto; flex: 1; border:1px solid #e2e8f0; padding:12px; margin-bottom:16px; border-radius:6px; background: #f7fafc;"></div>
+        <button class="btn-secondary" style="width:100%; flex-shrink: 0;" onclick="document.getElementById('backup-modal').classList.remove('active')">Close</button>
     </div>
 </div>
 
 <div id="duplicate-modal" class="modal-overlay">
-    <div class="modal-content red-modal" style="text-align:center;">
-        <h2 style="color:var(--danger); margin-top:0;">⚠️ DUPLICATE!</h2>
-        <p style="font-size: 16px; margin-bottom: 20px;">Barcode: <strong id="duplicate-id-text"></strong></p>
-        <button class="btn-danger-sm" style="width:100%;" onclick="resumeScanning('duplicate-modal')">OK</button>
+    <div class="modal-content red-modal">
+        <h2 style="color:var(--danger); margin-top:0; font-size: 24px;">⚠️ DUPLICATE!</h2>
+        <p style="font-size: 18px; margin-bottom: 24px;">Barcode: <br><strong id="duplicate-id-text" style="font-size: 22px; display:inline-block; margin-top:8px; word-break: break-all;"></strong></p>
+        <button class="btn-danger-sm" style="width:100%; height: 50px; font-size: 18px;" onclick="resumeScanning('duplicate-modal')">OK - RESUME</button>
     </div>
 </div>
 
 <div id="invalid-modal" class="modal-overlay">
-    <div class="modal-content yellow-modal" style="text-align:center;">
-        <h2 style="color:#dd6b20; margin-top:0;">⚠️ INVALID!</h2>
-        <p style="font-size: 16px; margin-bottom: 20px;">Barcode: <strong id="invalid-id-text"></strong></p>
-        <button class="btn-secondary" style="width:100%;" onclick="resumeScanning('invalid-modal')">OK</button>
+    <div class="modal-content yellow-modal">
+        <h2 style="color:#dd6b20; margin-top:0; font-size: 24px;">⚠️ INVALID!</h2>
+        <p style="font-size: 18px; margin-bottom: 24px;">Barcode: <br><strong id="invalid-id-text" style="font-size: 22px; display:inline-block; margin-top:8px; word-break: break-all;"></strong></p>
+        <button class="btn-secondary" style="width:100%; height: 50px; font-size: 18px;" onclick="resumeScanning('invalid-modal')">OK - RESUME</button>
     </div>
 </div>
 
 <div id="missing-modal" class="modal-overlay">
     <div class="modal-content blue-modal">
-        <h2 style="text-align:center; margin-top:0; font-size: 18px;">📋 Missing Parcels (<span id="missing-flow-name"></span>)</h2>
-        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:15px;flex-wrap:wrap;">
-            <button id="copy-print-btn" class="btn-primary" onclick="copyBulkLinks('print')">📋 Copy All Print Links</button>
-            <button id="copy-order-btn" class="btn-primary" onclick="copyBulkLinks('order')">📋 Copy All Order Links</button>
+        <h2 style="text-align:center; margin-top:0; font-size: 20px;">📋 Missing Parcels (<span id="missing-flow-name"></span>)</h2>
+        <div class="button-group" style="flex-direction: row; justify-content:center; margin-bottom:16px;">
+            <button id="copy-print-btn" class="btn-primary" style="flex:1;" onclick="copyBulkLinks('print')">📋 Copy Print Links</button>
+            <button id="copy-order-btn" class="btn-primary" style="flex:1;" onclick="copyBulkLinks('order')">📋 Copy Order Links</button>
         </div>
-        <div style="max-height:300px;overflow-y:auto;background:#f7fafc;border:1px solid #e2e8f0;border-radius:6px;" class="responsive-table-wrapper">
+        <div style="flex: 1; overflow-y:auto; background:#fff; border:1px solid #e2e8f0; border-radius:6px; min-height: 200px;" class="responsive-table-wrapper">
             <table id="missing-table">
-                <thead style="position:sticky;top:0;background:#edf2f7;z-index:1;">
+                <thead style="position:sticky;top:0;background:#edf2f7;z-index:1;box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <tr>
                         <th style="width:40px;text-align:center;">✓</th>
                         <th>Date</th>
@@ -161,17 +188,21 @@
                 <tbody id="missing-list-container"></tbody>
             </table>
         </div>
-        <div class="button-group" style="justify-content:center;">
-            <button class="btn-primary" onclick="downloadMissingExcel()">⬇️ Download List</button>
-            <button class="btn-secondary" onclick="resumeScanning('missing-modal')">Close</button>
+        <div class="button-group" style="margin-top: 16px; flex-shrink: 0;">
+            <button class="btn-primary" style="flex:1;" onclick="downloadMissingExcel()">⬇️ Download List</button>
+            <button class="btn-secondary" style="flex:1;" onclick="resumeScanning('missing-modal')">Close</button>
         </div>
     </div>
 </div>
 
 <div id="camera-modal" class="modal-overlay">
-    <div class="modal-content" style="max-width:500px;"><button class="btn-danger-sm" style="width:100%; margin-bottom:10px;" onclick="stopCamera()">✖ Close Camera</button><div id="reader"></div></div>
+    <div class="modal-content" style="max-width:600px; padding: 16px;">
+        <button class="btn-danger-sm" style="width:100%; margin-bottom:16px; height: 50px; font-size:16px;" onclick="stopCamera()">✖ Close Camera</button>
+        <div id="reader" style="flex:1;"></div>
+    </div>
 </div>
 
+<!-- MAIN APP -->
 <div class="container">
     <div class="header-bar">
         <h1>☁️ Cloud Scanner Pro</h1>
@@ -183,7 +214,8 @@
             </div>
         </div>
     </div>
-    <div class="multidev-banner">🔗 Multi-Device Sync Active.</div>
+    
+    <div class="multidev-banner">🔗 Multi-Device Sync Active. Changes sync in real-time.</div>
     
     <div class="flow-controls">
         <select id="flow-selector" onchange="switchFlow()"></select>
@@ -191,10 +223,10 @@
         <button class="btn-danger-sm" onclick="deleteCurrentFlow()">🗑️</button>
     </div>
 
-    <div style="margin-bottom: 16px; margin-top: 16px;">
-        <h4 style="margin: 0 0 8px 0; color: #4a5568; font-size: 13px; font-weight:600;">⏪ Previous 3 Days Archives:</h4>
-        <div id="history-tabs-container" style="display:flex; gap:8px; overflow-x:auto; padding-bottom: 6px; -webkit-overflow-scrolling:touch;">
-            <span style="color:#718096; font-size: 13px; font-style: italic;">Loading archives...</span>
+    <div style="margin: 20px 0;">
+        <h4 style="margin: 0 0 12px 0; color: #4a5568; font-size: 14px; font-weight:700; text-transform: uppercase;">⏪ Previous 3 Days Archives:</h4>
+        <div id="history-tabs-container" style="display:flex; gap:12px; overflow-x:auto; padding-bottom: 8px; -webkit-overflow-scrolling:touch;">
+            <span style="color:#718096; font-size: 14px; font-style: italic;">Loading archives...</span>
         </div>
     </div>
 
@@ -202,43 +234,46 @@
         <h3>1. Input Expected</h3>
         <div class="filter-box">
             <div class="filter-left">
-                <input type="checkbox" id="use-date-filter" checked> Only load parcels on: <input type="date" id="target-ship-date">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="use-date-filter" checked> 
+                    <span>Only load parcels on:</span>
+                </label>
+                <input type="date" id="target-ship-date">
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:8px;" class="button-group">
+            <div class="button-group" style="margin-top:0; width: auto; flex:1; justify-content: flex-end;">
                 <input type="file" id="file-upload" accept=".txt,.csv" style="display:none;" onchange="handleFileUpload(event)">
                 <button class="btn-primary" onclick="document.getElementById('file-upload').click()">📁 Upload .txt / .csv</button>
                 <input type="file" id="reverse-file-upload" accept=".txt,.csv" style="display:none;" onchange="handleReverseFileUpload(event)">
                 <button style="background:var(--danger);" onclick="document.getElementById('reverse-file-upload').click()">📁 Reverse File</button>
             </div>
         </div>
-        <textarea id="expected-ids" rows="4" placeholder="Or paste tracking details here..."></textarea>
+        <textarea id="expected-ids" rows="4" placeholder="Or paste tracking/order details here..."></textarea>
         <div class="button-group">
             <button class="btn-primary" onclick="addExpectedIDsFromPaste()">➕ Add Pasted Data</button>
             <button class="btn-primary" style="background:var(--success);" onclick="saveAndNextDay()">⏭️ Save & Next Day</button>
-            <button class="btn-secondary" style="margin-left: auto;" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
+            <button class="btn-secondary push-right" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
         </div>
     </div>
 
     <div class="section">
         <h3>2. Scan Parcels</h3>
+        <span id="active-flow-label">Target: —</span>
         <div class="scanner-wrapper">
             <input type="text" id="scanner-input" placeholder="Scan barcode..." autofocus autocomplete="off">
-            <div id="active-flow-label">Target: —</div>
-            <button class="btn-primary" onclick="startCamera()" style="background:var(--success); margin-top:0; height: 50px; width:110px;">📷 Camera</button>
+            <button class="btn-primary camera-btn" onclick="startCamera()">📷 Camera</button>
         </div>
         <div id="log" style="display:none;"></div>
     </div>
 
-    <div class="section" style="border-bottom:none;">
+    <div class="section" style="border-bottom:none; padding-bottom: 0;">
         <h3>3. Summary (<span id="scanned-count">0</span> / <span id="total-expected">0</span>)</h3>
-        <div class="button-group" style="margin-bottom:12px;">
+        <div class="button-group" style="margin-bottom:16px;">
             <button id="backup-btn" onclick="createBackup()">💾 Save Backup Snapshot</button>
             <button id="view-backup-btn" onclick="showBackups()">📂 View Backups</button>
-        </div>
-        <div class="button-group" style="margin-bottom:16px;">
-            <button id="download-btn" onclick="downloadExcel()" disabled>⬇️ Download List</button>
+            <button id="download-btn" onclick="downloadExcel()" disabled class="push-right">⬇️ Download List</button>
             <button id="finish-btn" onclick="checkRemaining()">🏁 Finish & Check Missing</button>
         </div>
+        
         <div class="responsive-table-wrapper">
             <table id="history-table">
                 <thead>
@@ -248,7 +283,7 @@
                         <th>Order ID</th>
                         <th>Tracking ID</th>
                         <th>Product SKU</th>
-                        <th style="width:50px;">Qty</th>
+                        <th style="width:50px; text-align:center;">Qty</th>
                         <th>Time Scanned</th>
                         <th>Device</th>
                     </tr>
@@ -403,12 +438,10 @@ function attachArchiveListener(flowKey) {
                 const isComplete = (expectedCount > 0 && expectedCount === scannedCount);
 
                 const btn = document.createElement('button');
-                btn.style.cssText = `padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; border: 1px solid #ccc; cursor: pointer; white-space: nowrap; transition: 0.2s; min-height:36px; width:auto;`;
-                
                 if (isComplete) {
-                    btn.style.background = '#d4edda'; btn.style.color = '#155724'; btn.style.borderColor = '#c3e6cb';
+                    btn.style.cssText = `background:#d4edda; color:#155724; border-color:#c3e6cb;`;
                 } else {
-                    btn.style.background = '#fff3cd'; btn.style.color = '#856404'; btn.style.borderColor = '#ffeeba';
+                    btn.style.cssText = `background:#fff3cd; color:#856404; border-color:#ffeeba;`;
                 }
                 
                 btn.innerText = `📅 ${date} (${scannedCount}/${expectedCount})`;
@@ -416,7 +449,7 @@ function attachArchiveListener(flowKey) {
                 container.appendChild(btn);
             });
         } else {
-            container.innerHTML = '<span style="color:#888; font-size: 13px; font-style: italic;">No previous days archived yet.</span>';
+            container.innerHTML = '<span style="color:#718096; font-size: 14px; font-style: italic;">No previous days archived yet.</span>';
         }
     });
 }
@@ -494,34 +527,34 @@ function triggerDuplicateLockout(id) {
     isCameraPaused = true; playSound('duplicate');
     document.getElementById('scanner-input').disabled = true;
     document.getElementById('duplicate-id-text').innerText = id;
-    document.getElementById('duplicate-modal').style.display = 'block';
+    document.getElementById('duplicate-modal').classList.add('active');
 }
 function triggerInvalidLockout(id) {
     isCameraPaused = true; playSound('invalid');
     document.getElementById('scanner-input').disabled = true;
     document.getElementById('invalid-id-text').innerText = id;
-    document.getElementById('invalid-modal').style.display = 'block';
+    document.getElementById('invalid-modal').classList.add('active');
 }
 window.resumeScanning = function(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    document.getElementById(modalId).classList.remove('active');
     const inp = document.getElementById('scanner-input');
     inp.disabled = false; inp.value = ''; inp.focus(); isCameraPaused = false;
 };
 
 window.startCamera = function() {
-    document.getElementById('camera-modal').style.display = 'block';
+    document.getElementById('camera-modal').classList.add('active');
     html5QrCode = new Html5Qrcode('reader');
     html5QrCode.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 150 } }, (decoded) => {
         if (isCameraPaused) return;
         processScannedId(decoded); isCameraPaused = true;
         setTimeout(() => {
-            if (document.getElementById('duplicate-modal').style.display !== 'block' && document.getElementById('invalid-modal').style.display !== 'block') isCameraPaused = false;
+            if (!document.getElementById('duplicate-modal').classList.contains('active') && !document.getElementById('invalid-modal').classList.contains('active')) isCameraPaused = false;
         }, 1500);
     }).catch(err => { alert('Camera error: ' + err); window.stopCamera(); });
 };
 window.stopCamera = function() {
-    if (html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); document.getElementById('camera-modal').style.display = 'none'; }).catch(() => {});
-    else document.getElementById('camera-modal').style.display = 'none';
+    if (html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); document.getElementById('camera-modal').classList.remove('active'); }).catch(() => {});
+    else document.getElementById('camera-modal').classList.remove('active');
 };
 
 function saveExpectedData() {
@@ -764,13 +797,13 @@ function updateSummaryUI() {
 
         row.innerHTML = `
             <td>${rec.number}</td>
-            <td><span style="font-size:12px; font-weight:600;">${rec.expectedDate || '—'}</span></td>
+            <td><span style="font-size:13px; font-weight:600; color:#4a5568;">${rec.expectedDate || '—'}</span></td>
             <td>${rec.orderId || '—'}</td>
             <td><strong>${rec.id}</strong></td>
-            <td><span style="font-size:12px;">${rec.sku || '—'}</span></td>
-            <td><strong>${rec.qty || '—'}</strong></td>
+            <td><span style="font-size:13px; color:#4a5568;">${rec.sku || '—'}</span></td>
+            <td style="text-align:center;"><strong>${rec.qty || '—'}</strong></td>
             <td><span style="font-size:12px; color:#718096;">${rec.time}</span></td>
-            <td><span style="background:#e2e8f0;border-radius:4px;padding:2px 6px;font-size:12px;color:#4a5568;">${rec.device || '?'}</span></td>`;
+            <td><span style="background:#e2e8f0;border-radius:4px;padding:4px 8px;font-size:12px;color:#4a5568;font-weight:600;">${rec.device || '?'}</span></td>`;
         tbody.appendChild(row);
     }
 }
@@ -830,18 +863,18 @@ window.checkRemaining = function() {
                 ${orderId ? `<input type="checkbox" class="missing-checkbox" data-print-link="${printLink}" data-order-link="${orderDetailLink}" onchange="updateBulkCopyButtons()">` : ''}
             </td>
             <td>
-                <span style="font-size:12px; font-weight:600;">${expectedDate || '—'}</span>
+                <span style="font-size:13px; font-weight:600; color:#4a5568;">${expectedDate || '—'}</span>
             </td>
             <td>
-                ${orderId ? `<a href="${orderDetailLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${orderId}</a>` : '<span style="color:#a0aec0;font-size:12px;">Unknown</span>'}
+                ${orderId ? `<a href="${orderDetailLink}" target="_blank" style="color:var(--primary);text-decoration:none;font-weight:700;">${orderId}</a>` : '<span style="color:#a0aec0;font-size:13px;font-style:italic;">Unknown</span>'}
             </td>
             <td>
-                ${printLink ? `<a href="${printLink}" target="_blank" style="color:#0056b3;text-decoration:none;font-weight:bold;">${tid}</a>` : `<strong>${tid}</strong>`}
+                ${printLink ? `<a href="${printLink}" target="_blank" style="color:var(--primary);text-decoration:none;font-weight:700;">${tid}</a>` : `<strong>${tid}</strong>`}
             </td>
-            <td style="font-size:12px; max-width:180px; word-wrap:break-word;">
+            <td style="font-size:13px; max-width:200px; word-wrap:break-word; color:#4a5568;">
                 ${sku}
             </td>
-            <td style="text-align:center; font-weight:bold;">
+            <td style="text-align:center; font-weight:bold; font-size:15px;">
                 ${qty}
             </td>`;
         container.appendChild(tr);
@@ -851,7 +884,7 @@ window.checkRemaining = function() {
         playSound('success'); flashScreenGreen(); alert(`🎉 CONGRATULATIONS!\nAll parcels for "${activeFlowName}" have been scanned!`);
     } else {
         document.getElementById('missing-flow-name').innerText = activeFlowName;
-        updateBulkCopyButtons(); document.getElementById('missing-modal').style.display = 'block';
+        updateBulkCopyButtons(); document.getElementById('missing-modal').classList.add('active');
     }
 };
 
@@ -891,15 +924,15 @@ window.createBackup = function() {
 window.showBackups = function() {
     const backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
     const list = document.getElementById('backup-list'); list.innerHTML = '';
-    if (!backups.length) list.innerHTML = '<p style="text-align:center;color:#666;">No backups saved yet.</p>';
+    if (!backups.length) list.innerHTML = '<p style="text-align:center;color:#a0aec0;padding:20px;">No backups saved yet.</p>';
     else {
         [...backups].reverse().forEach(b => {
-            const div = document.createElement('div'); div.style.cssText = 'border-bottom:1px solid #e2e8f0;padding:12px 0;';
-            div.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;"><div><strong>${b.time}</strong><br><span style="font-size:13px;color:#4a5568;">Company: ${b.flow}</span><br><span style="color:var(--success);font-weight:bold;font-size:13px;">✓ ${b.scannedCount} items</span></div><button onclick="restoreBackup(${b.id})" style="background:#17a2b8;color:white;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;font-weight:bold;width:100%;">Restore to Cloud</button></div>`;
+            const div = document.createElement('div'); div.style.cssText = 'border-bottom:1px solid #e2e8f0;padding:16px 0;';
+            div.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px;"><div><strong style="font-size:16px;">${b.time}</strong><br><span style="font-size:14px;color:#4a5568;">Company: <strong>${b.flow}</strong></span><br><span style="color:var(--success);font-weight:bold;font-size:14px;">✓ ${b.scannedCount} items</span></div><button onclick="restoreBackup(${b.id})" style="background:#17a2b8;color:white;border:none;padding:12px;border-radius:6px;cursor:pointer;font-weight:bold;width:100%;font-size:15px;">Restore to Cloud</button></div>`;
             list.appendChild(div);
         });
     }
-    document.getElementById('backup-modal').style.display = 'block';
+    document.getElementById('backup-modal').classList.add('active');
 };
 
 window.restoreBackup = async function(backupId) {
@@ -914,7 +947,7 @@ window.restoreBackup = async function(backupId) {
             device: rec.device || 'Restored' 
         });
     }
-    document.getElementById('backup-modal').style.display = 'none'; showLog('Backup restored!', 'success');
+    document.getElementById('backup-modal').classList.remove('active'); showLog('Backup restored!', 'success');
 };
 
 window.onload = function() { setCloudStatus('Connecting…', 'syncing'); listenToFlowList(); };
