@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Amazon Parcel Scanner – Multi-Device</title>
+    <title>Cloud Parcel Scanner Pro – Multi-Device</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
         /* ==========================================================================
@@ -118,7 +118,7 @@
         .system-controls { display: flex; gap: 0.5rem; align-items: center; }
         .system-controls select { padding: 0.4rem 0.6rem; font-size: 0.85rem; height: auto; min-width: auto; border-radius: 4px; }
 
-        .cloud-status { font-size: 0.9rem; padding: 0.4rem 1rem; background: var(--surface); color: var(--text); border-radius: 20px; font-weight: bold; border: 1px solid var(--border); transition: background 0.3s; text-align: center; white-space: nowrap; cursor: pointer; user-select: none; }
+        .cloud-status { font-size: 0.9rem; padding: 0.4rem 1rem; background: var(--surface); color: var(--text); border-radius: 20px; font-weight: bold; border: 1px solid var(--border); transition: background 0.3s; text-align: center; white-space: nowrap; }
         .cloud-status.syncing { border-color: var(--info); color: var(--info); }
         .cloud-status.error   { border-color: var(--danger); color: var(--danger); }
 
@@ -130,9 +130,7 @@
 
         .multidev-banner { background: var(--surface); border: 1px solid var(--info); border-radius: var(--radius-input); padding: 0.8rem 1rem; font-size: 0.9rem; color: var(--info); margin-bottom: 1rem; font-weight: 500; }
 
-        /* MODIFIED: Flow Controls forced inline and select size reduced */
-        .flow-controls { display: flex; gap: 0.8rem; align-items: center; background: var(--bg); padding: 1rem; border-radius: var(--radius-card); border: 1px solid var(--border); margin-top: 0.5rem; flex-wrap: nowrap; }
-        .flow-controls select { max-width: 250px; margin-top: 0; margin-right: auto; }
+        .flow-controls { display: flex; gap: 0.8rem; align-items: center; background: var(--bg); padding: 1rem; border-radius: var(--radius-card); border: 1px solid var(--border); margin-top: 0.5rem; flex-wrap: wrap; }
         
         .section { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
         .section h3 { margin-top: 0; font-size: 1.2rem; color: var(--text); font-weight: 600; margin-bottom: 0.8rem; }
@@ -250,11 +248,10 @@
             .header-right { width: 100%; align-items: flex-start; flex-direction: column; }
             .top-controls-row { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
             
-            /* MODIFIED: Ensure flow-controls stay strictly inline on mobile as well */
-            .flow-controls { flex-direction: row; flex-wrap: nowrap; padding: 0.8rem; gap: 0.5rem; }
-            .flow-controls select { width: 100%; max-width: none; flex: 1; margin-bottom: 0; padding: 0.7rem; font-size: 0.9rem; margin-right: auto; }
-            .flow-controls button:nth-of-type(1) { flex: none; padding: 0.7rem 0.5rem; font-size: 0.85rem; white-space: nowrap; } 
-            .flow-controls button:nth-of-type(2) { width: 2.5rem; flex: none; padding: 0.7rem 0; } 
+            .flow-controls { flex-direction: row; flex-wrap: wrap; padding: 0.8rem; gap: 0.5rem; }
+            .flow-controls select { width: 100%; margin-bottom: 0.2rem; padding: 0.7rem; font-size: 0.9rem; }
+            .flow-controls button:nth-of-type(1) { flex: 1; padding: 0.7rem; font-size: 0.9rem; } 
+            .flow-controls button:nth-of-type(2) { width: 3.5rem; flex: none; padding: 0.7rem 0; } 
             
             .filter-box { flex-direction: column; align-items: stretch; gap: 0.8rem; padding: 0.8rem; }
             .filter-left { width: 100%; justify-content: space-between; flex-wrap: wrap; }
@@ -357,8 +354,7 @@
 
 <div class="container">
     <div class="header-bar">
-        <!-- TITLE UPDATED -->
-        <h1>☁️ Amazon Parcel Scanner</h1>
+        <h1>☁️ Cloud Scanner Pro</h1>
         <div class="header-right">
             <!-- DESIGN SYSTEM CONTROLS & DEVICE/CLOUD STATUS (ROW LAYOUT) -->
             <div class="top-controls-row">
@@ -375,7 +371,7 @@
                         <option value="large">A+ (Large)</option>
                     </select>
                 </div>
-                <div id="cloud-status" class="cloud-status" ondblclick="renameDevice()" title="Double-click to rename device">Connecting…</div>
+                <div id="cloud-status" class="cloud-status">Connecting…</div>
             </div>
             
             <div class="sync-bar">
@@ -523,21 +519,11 @@ let html5QrCode;
 let isCameraPaused = false;
 let selectedArchiveDate = "";
 
-let DEVICE_ID = (() => {
-    let id = localStorage.getItem('scannerDeviceId');
-    if (!id) { id = "Dev-" + Math.random().toString(36).substring(2, 6).toUpperCase(); localStorage.setItem('scannerDeviceId', id); }
+const DEVICE_ID = (() => {
+    let id = sessionStorage.getItem('scannerDeviceId');
+    if (!id) { id = "Dev-" + Math.random().toString(36).substring(2, 6).toUpperCase(); sessionStorage.setItem('scannerDeviceId', id); }
     return id;
 })();
-
-window.renameDevice = function() {
-    const newName = prompt('Enter a new name for this device:', DEVICE_ID);
-    if (newName !== null && newName.trim() !== '') {
-        DEVICE_ID = newName.trim();
-        localStorage.setItem('scannerDeviceId', DEVICE_ID);
-        markSynced(); 
-        showLog(`Device successfully renamed to ${DEVICE_ID}`, 'success');
-    }
-};
 
 function sanitizeKey(name) { return name.replace(/[.#$[\]/\s]/g, '_'); }
 function setCloudStatus(text, state = 'ok') {
