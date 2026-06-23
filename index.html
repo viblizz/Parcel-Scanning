@@ -6,150 +6,269 @@
     <title>Cloud Parcel Scanner Pro – Multi-Device</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
+        /* ==========================================================================
+           DESIGN SYSTEM: CORE VARIABLES
+           ========================================================================== */
         :root {
-            --primary: #0056b3;
-            --primary-hover: #004494;
-            --secondary: #6c757d;
-            --secondary-hover: #5a6268;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --radius-btn: 8px;
+            --radius-input: 6px;
+            --radius-card: 10px;
+            --anim-spring: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Status Colors (Shared across themes) */
             --success: #28a745;
             --danger: #dc3545;
-            --danger-hover: #c82333;
-            --warning-bg: #fff5f5;
-            --warning-border: #feb2b2;
-            --warning-text: #9b2c2c;
-            --radius: 8px;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --primary: #FF6B35;
+            --primary-hover: #e55a25;
+            --primary-glow: rgba(255, 107, 53, 0.25);
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; background-color: #f7fafc; margin: 0; color: #2d3748; }
+        /* TYPOGRAPHY SCALING (Applied to html element) */
+        html[data-font="small"] { font-size: 13px; }
+        html[data-font="medium"] { font-size: 15px; }
+        html[data-font="large"] { font-size: 18px; }
+
+        /* THEME 1: DEEP BLUE (DEFAULT) */
+        html[data-theme="deepblue"] {
+            --bg: #081C24;
+            --surface: #0F4C5C;
+            --text: #ffffff;
+            --text-muted: #a1b0b8;
+            --border: #1f5f70;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            --surface-hover: #135d70;
+            --input-bg: #0b3642;
+        }
+
+        /* THEME 2: LIGHT */
+        html[data-theme="light"] {
+            --bg: #f4f6f9;
+            --surface: #ffffff;
+            --text: #1a1a1a;
+            --text-muted: #555555;
+            --border: #cccccc;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --surface-hover: #fcfcfc;
+            --input-bg: #ffffff;
+        }
+
+        /* THEME 3: DARK */
+        html[data-theme="dark"] {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --text: #ffffff;
+            --text-muted: #9aa0a6;
+            --border: #333333;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            --surface-hover: #2a2a2a;
+            --input-bg: #121212;
+        }
+
+        /* THEME 4: EYE PROTECTANT */
+        html[data-theme="eyeprotectant"] {
+            --bg: #f4ecd8;
+            --surface: #fdf6e3;
+            --text: #4c4031;
+            --text-muted: #756a5c;
+            --border: #d9ceb2;
+            --shadow: 0 4px 12px rgba(100, 90, 70, 0.08);
+            --surface-hover: #f4ebd0;
+            --input-bg: #fdf6e3;
+        }
+
+        /* ==========================================================================
+           GLOBAL STYLES & TRANSITIONS
+           ========================================================================== */
+        body { 
+            font-family: var(--font-family); 
+            padding: 1.5rem; 
+            background-color: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            line-height: 1.5;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
         
+        .container, .modal-content, .filter-box, input, textarea, select, table th, table td {
+            transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow var(--anim-spring);
+        }
+
         /* DESKTOP OPTIMIZED CONTAINER */
-        .container { width: 100%; max-width: 1200px; margin: auto; background: white; padding: 24px; border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.05); box-sizing: border-box; }
+        .container { 
+            width: 100%; 
+            max-width: 1200px; 
+            margin: auto; 
+            background: var(--surface); 
+            padding: 2rem; 
+            border-radius: var(--radius-card); 
+            box-shadow: var(--shadow); 
+            box-sizing: border-box; 
+        }
 
-        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-        .header-bar h1 { margin: 0; color: #1a202c; font-size: 26px; font-weight: 700; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .header-bar h1 { margin: 0; font-size: 1.8rem; font-weight: 700; color: var(--text); }
 
-        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-        .cloud-status { font-size: 14px; padding: 6px 14px; background: #e6fffa; color: #234e52; border-radius: 20px; font-weight: bold; border: 1px solid #b2f5ea; transition: background 0.3s; text-align: center; }
-        .cloud-status.syncing { background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8; }
-        .cloud-status.error   { background: #fff5f5; color: #9b2c2c; border-color: #fed7d7; }
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
+        .system-controls { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem; }
+        .system-controls select { padding: 0.3rem 0.5rem; font-size: 0.85rem; height: auto; min-width: auto; border-radius: 4px; }
 
-        .sync-bar { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #718096; }
-        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e0; display: inline-block; }
+        .cloud-status { font-size: 0.9rem; padding: 0.4rem 1rem; background: var(--surface); color: var(--text); border-radius: 20px; font-weight: bold; border: 1px solid var(--border); transition: background 0.3s; text-align: center; }
+        .cloud-status.syncing { border-color: var(--info); color: var(--info); }
+        .cloud-status.error   { border-color: var(--danger); color: var(--danger); }
+
+        .sync-bar { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted); }
+        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); display: inline-block; }
         .sync-dot.live { background: var(--success); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        .last-sync-text { font-size: 12px; color: #a0aec0; }
+        .last-sync-text { font-size: 0.8rem; color: var(--text-muted); }
 
-        .multidev-banner { background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 6px; padding: 12px 16px; font-size: 14px; color: #2b6cb0; margin-bottom: 16px; font-weight: 500; }
+        .multidev-banner { background: var(--surface); border: 1px solid var(--info); border-radius: var(--radius-input); padding: 0.8rem 1rem; font-size: 0.9rem; color: var(--info); margin-bottom: 1rem; font-weight: 500; }
 
-        .flow-controls { display: flex; gap: 10px; align-items: center; background: #ebf4ff; padding: 16px; border-radius: var(--radius); border: 1px solid #bee3f8; margin-top: 8px; flex-wrap: wrap; }
-        select { flex: 1; min-width: 200px; padding: 12px; font-size: 16px; border-radius: 6px; font-weight: 600; border: 1px solid #cbd5e0; background: white; }
-
-        .section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #edf2f7; }
-        .section h3 { margin-top: 0; font-size: 18px; color: #4a5568; font-weight: 600; margin-bottom: 12px; }
+        .flow-controls { display: flex; gap: 0.8rem; align-items: center; background: var(--bg); padding: 1rem; border-radius: var(--radius-card); border: 1px solid var(--border); margin-top: 0.5rem; flex-wrap: wrap; }
         
-        textarea, input[type="text"], input[type="date"] { width: 100%; padding: 14px; margin-top: 8px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 16px; background: #fff; }
-        textarea:focus, input[type="text"]:focus, input[type="date"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(66,153,225,0.15); }
+        .section { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        .section h3 { margin-top: 0; font-size: 1.2rem; color: var(--text); font-weight: 600; margin-bottom: 0.8rem; }
         
-        button { padding: 12px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 15px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; }
-        button:active { transform: scale(0.98); }
+        /* ==========================================================================
+           INPUTS & SELECTS
+           ========================================================================== */
+        textarea, input[type="text"], input[type="date"], select { 
+            width: 100%; padding: 0.8rem; margin-top: 0.5rem; border: 1px solid var(--border); 
+            border-radius: var(--radius-input); box-sizing: border-box; font-size: 1rem; 
+            background: var(--input-bg); color: var(--text); font-family: var(--font-family);
+        }
+        textarea:focus, input[type="text"]:focus, input[type="date"]:focus, select:focus { 
+            outline: none; border-color: var(--primary); 
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15); 
+        }
 
-        .btn-primary   { background: var(--primary); }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-secondary { background: var(--secondary); }
-        .btn-secondary:hover { background: var(--secondary-hover); }
-        .btn-danger-sm { background: var(--danger); }
-        .btn-danger-sm:hover { background: var(--danger-hover); }
+        /* ==========================================================================
+           BUTTON DESIGN SYSTEM
+           ========================================================================== */
+        button, .btn, .btn-teal, .btn-navy, .btn-red, .btn-outline { 
+            padding: 0.8rem 1.2rem; border: none; border-radius: var(--radius-btn); 
+            cursor: pointer; font-weight: 600; font-size: 0.95rem; font-family: var(--font-family);
+            transition: var(--anim-spring); display: inline-flex; align-items: center; 
+            justify-content: center; gap: 0.5rem; box-sizing: border-box; 
+        }
+        button:active { transform: scale(0.98) !important; }
 
-        #download-btn { background: var(--success); }
-        #download-btn:disabled { background: #cbd5e0; cursor: not-allowed; transform: none; }
-        #finish-btn { background: #17a2b8; }
-        #backup-btn { background: #dd6b20; }
+        .btn { background: var(--primary); color: #fff; }
+        .btn:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 12px var(--primary-glow); }
+
+        .btn-teal { background: #0F4C5C; color: #fff; border: 1px solid #1f5f70; }
+        .btn-teal:hover { background: #135d70; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(15, 76, 92, 0.3); }
+
+        .btn-navy { background: #081C24; color: #fff; border: 1px solid #1f5f70; }
+        .btn-navy:hover { background: #0a2530; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(8, 28, 36, 0.3); }
+
+        .btn-red { background: var(--danger); color: #fff; }
+        .btn-red:hover { background: #c82333; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3); }
+        
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-success:hover { background: #218838; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3); }
+
+        /* Override disabled state */
+        button:disabled, .btn:disabled { background: var(--border) !important; color: var(--text-muted) !important; cursor: not-allowed; transform: none !important; box-shadow: none !important; border: none; }
 
         /* FLUID BUTTON GROUPS */
-        .button-group { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; align-items: stretch; width: 100%; }
-        .button-group.right-align { justify-content: flex-end; }
+        .button-group { display: flex; gap: 0.8rem; margin-top: 0.8rem; flex-wrap: wrap; align-items: stretch; width: 100%; }
         .push-right { margin-left: auto; }
 
-        .filter-box { background: #edf2f7; padding: 16px; border-radius: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #4a5568; flex-wrap: wrap; gap: 16px; }
-        .filter-left { display: flex; align-items: center; gap: 10px; font-size: 15px; }
-        .filter-box input[type="date"] { width: auto; margin-top: 0; padding: 8px; font-size: 15px; }
-        .filter-box input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; margin: 0; }
+        /* ==========================================================================
+           CARDS, PANELS & CHECKBOXES
+           ========================================================================== */
+        .filter-box { background: var(--bg); padding: 1rem; border-radius: var(--radius-card); margin-top: 0.8rem; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--text); flex-wrap: wrap; gap: 1rem; border: 1px solid var(--border); }
+        .filter-box:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        
+        .filter-left { display: flex; align-items: center; gap: 0.8rem; font-size: 0.95rem; }
+        .filter-box input[type="date"] { width: auto; margin-top: 0; padding: 0.5rem; font-size: 0.95rem; }
+        
+        input[type="checkbox"], .missing-checkbox { 
+            width: 1.5rem; height: 1.5rem; cursor: pointer; margin: 0; 
+            accent-color: var(--primary); transition: transform 0.2s; 
+        }
+        input[type="checkbox"]:hover, .missing-checkbox:hover { transform: scale(1.15); }
 
         /* RESPONSIVE SCANNER WRAPPER */
-        #active-flow-label { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
-        .scanner-wrapper { display: flex; gap: 10px; width: 100%; align-items: stretch; }
-        #scanner-input { flex: 1; font-size: 22px; background-color: #f7fafc; padding: 16px; margin: 0; height: 60px; min-width: 0; }
-        #scanner-input:disabled { background-color: #e2e8f0; cursor: not-allowed; }
-        .camera-btn { background: var(--success); margin: 0; height: 60px; font-size: 18px; padding: 0 24px; flex-shrink: 0; }
+        #active-flow-label { font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 0.4rem; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+        .scanner-wrapper { display: flex; gap: 0.8rem; width: 100%; align-items: stretch; }
+        #scanner-input { flex: 1; font-size: 1.5rem; background-color: var(--input-bg); padding: 1rem; margin: 0; height: 4rem; min-width: 0; border: 2px solid var(--border); }
+        #scanner-input:disabled { opacity: 0.6; cursor: not-allowed; }
+        .camera-btn { background: var(--success); margin: 0; height: 4rem; font-size: 1.1rem; padding: 0 1.5rem; flex-shrink: 0; }
 
-        #log { margin-top: 12px; padding: 16px; font-weight: 600; border-radius: 6px; font-size: 15px; }
-        .success { background-color: #c6f6d5; color: #22543d; border: 1px solid #9ae6b4; }
-        .warning { background-color: #feebc8; color: #744210; border: 1px solid #fbd38d; }
+        #log { margin-top: 0.8rem; padding: 1rem; font-weight: 600; border-radius: var(--radius-input); font-size: 0.95rem; }
+        .success { background-color: rgba(40, 167, 69, 0.15); color: var(--success); border: 1px solid var(--success); }
+        .warning { background-color: rgba(255, 193, 7, 0.15); color: var(--warning); border: 1px solid var(--warning); }
 
-        /* RESPONSIVE TABLES */
-        .responsive-table-wrapper { width: 100%; overflow-x: auto; margin-top: 20px; -webkit-overflow-scrolling: touch; border: 1px solid #e2e8f0; border-radius: 6px; background: white; }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; font-size: 14px; }
-        th, td { border-bottom: 1px solid #e2e8f0; padding: 14px 12px; text-align: left; vertical-align: middle; }
-        th { background-color: #f7fafc; color: #4a5568; font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+        /* ==========================================================================
+           RESPONSIVE TABLES
+           ========================================================================== */
+        .responsive-table-wrapper { width: 100%; overflow-x: auto; margin-top: 1.5rem; -webkit-overflow-scrolling: touch; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; font-size: 0.9rem; }
+        th, td { border-bottom: 1px solid var(--border); padding: 1rem 0.8rem; text-align: left; vertical-align: middle; }
+        th { background-color: var(--bg); color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
         
-        .late-row-highlight { background-color: var(--warning-bg) !important; color: var(--warning-text); }
-        .late-row-highlight td { border-bottom-color: var(--warning-border); }
+        tr:hover { background-color: var(--bg); }
+        .late-row-highlight { background-color: rgba(220, 53, 69, 0.1) !important; color: var(--danger); }
+        .late-row-highlight td { border-bottom-color: rgba(220, 53, 69, 0.3); }
 
-        /* MOBILE OPTIMIZED MODALS */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; padding: 16px; box-sizing: border-box; overflow-y: auto; display: flex; align-items: center; justify-content: center; }
+        /* ==========================================================================
+           MOBILE OPTIMIZED MODALS
+           ========================================================================== */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; padding: 1rem; box-sizing: border-box; overflow-y: auto; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-overlay:not(.active) { display: none; }
-        .modal-content { background: white; padding: 24px; width: 100%; max-width: 800px; border-radius: var(--radius); box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; display: flex; flex-direction: column; }
+        .modal-content { background: var(--surface); padding: 1.5rem; width: 100%; max-width: 800px; border-radius: var(--radius-card); box-sizing: border-box; box-shadow: 0 20px 40px rgba(0,0,0,0.4); max-height: 90vh; display: flex; flex-direction: column; border: 1px solid var(--border); }
+        
         .red-modal { border-top: 8px solid var(--danger); max-width: 450px; text-align: center; }
-        .yellow-modal { border-top: 8px solid #dd6b20; max-width: 450px; text-align: center; }
-        .blue-modal { border-top: 8px solid #17a2b8; max-width: 900px; }
+        .yellow-modal { border-top: 8px solid var(--warning); max-width: 450px; text-align: center; }
+        .blue-modal { border-top: 8px solid var(--info); max-width: 900px; }
         
         #camera-modal { z-index: 900; }
-        #reader { width: 100%; min-height: 300px; background: #000; border-radius: var(--radius); overflow: hidden; }
+        #reader { width: 100%; min-height: 300px; background: #000; border-radius: var(--radius-card); overflow: hidden; }
         
         #flash-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(40, 167, 69, 0.4); z-index: 9999; pointer-events: none; transition: opacity 0.15s; }
-        .missing-checkbox { width: 24px; height: 24px; cursor: pointer; margin: 0; }
 
-        #history-tabs-container button { padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 1px solid #ccc; cursor: pointer; white-space: nowrap; transition: 0.2s; min-height: 40px; width: auto; flex-shrink: 0; }
+        #history-tabs-container button { padding: 0.6rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600; border: 1px solid var(--border); cursor: pointer; white-space: nowrap; transition: var(--anim-spring); min-height: 40px; width: auto; flex-shrink: 0; background: var(--bg); color: var(--text); }
+        #history-tabs-container button:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 
-        /* ========================================================
-           MOBILE MEDIA QUERIES (COMPLETELY OVERHAULED FOR SPACE)
-           ======================================================== */
+        /* ==========================================================================
+           MOBILE MEDIA QUERIES
+           ========================================================================== */
         @media (max-width: 768px) {
-            body { padding: 8px; }
-            .container { padding: 14px; margin: 0 auto; border-radius: 12px; }
-            .header-bar { flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 12px; margin-bottom: 12px; }
-            .header-right { width: 100%; align-items: center; flex-direction: row; justify-content: space-between; margin-top: 4px; }
+            body { padding: 0.5rem; }
+            .container { padding: 1rem; margin: 0 auto; border-radius: var(--radius-card); }
+            .header-bar { flex-direction: column; align-items: flex-start; gap: 0.5rem; padding-bottom: 0.8rem; margin-bottom: 0.8rem; }
+            .header-right { width: 100%; align-items: center; flex-direction: row; justify-content: space-between; margin-top: 0.2rem; flex-wrap: wrap; }
+            .system-controls { width: 100%; justify-content: flex-end; margin-bottom: 0.5rem; }
             
-            /* 1. FLOW CONTROLS (Company Select on top, New Company & Bin side-by-side) */
-            .flow-controls { flex-direction: row; flex-wrap: wrap; padding: 12px; gap: 8px; }
-            .flow-controls select { width: 100%; margin-bottom: 4px; padding: 10px; font-size: 14px; }
-            .flow-controls button:nth-of-type(1) { flex: 1; padding: 10px; font-size: 14px; } /* New Company Button */
-            .flow-controls button:nth-of-type(2) { width: 50px; flex: none; padding: 10px 0; } /* Bin Button */
+            .flow-controls { flex-direction: row; flex-wrap: wrap; padding: 0.8rem; gap: 0.5rem; }
+            .flow-controls select { width: 100%; margin-bottom: 0.2rem; padding: 0.7rem; font-size: 0.9rem; }
+            .flow-controls button:nth-of-type(1) { flex: 1; padding: 0.7rem; font-size: 0.9rem; } 
+            .flow-controls button:nth-of-type(2) { width: 3.5rem; flex: none; padding: 0.7rem 0; } 
             
-            .filter-box { flex-direction: column; align-items: stretch; gap: 12px; padding: 12px; }
+            .filter-box { flex-direction: column; align-items: stretch; gap: 0.8rem; padding: 0.8rem; }
             .filter-left { width: 100%; justify-content: space-between; flex-wrap: wrap; }
             
-            /* 2. UPLOAD & REVERSE BUTTONS (Side-by-side) */
-            .filter-box .button-group { flex-direction: row; flex-wrap: nowrap; margin-top: 0; gap: 8px; }
-            .filter-box .button-group button { flex: 1; padding: 12px 4px; font-size: 13px; }
+            .filter-box .button-group { flex-direction: row; flex-wrap: nowrap; margin-top: 0; gap: 0.5rem; }
+            .filter-box .button-group button { flex: 1; padding: 0.8rem 0.2rem; font-size: 0.85rem; }
             
-            /* 3. SECTION 1 ACTION BUTTONS */
-            .section > .button-group { flex-direction: row; flex-wrap: wrap; gap: 8px; }
-            .section > .button-group button:nth-child(1) { flex: 1 1 100%; padding: 12px; font-size: 14px; } /* Add Pasted Data */
-            /* Save & Next AND Clear Current Flow side-by-side */
+            .section > .button-group { flex-direction: row; flex-wrap: wrap; gap: 0.5rem; }
+            .section > .button-group button:nth-child(1) { flex: 1 1 100%; padding: 0.8rem; font-size: 0.9rem; } 
             .section > .button-group button:nth-child(2),
-            .section > .button-group button:nth-child(3) { flex: 1 1 calc(50% - 5px); padding: 12px 4px; font-size: 13px; margin: 0; }
+            .section > .button-group button:nth-child(3) { flex: 1 1 calc(50% - 0.3rem); padding: 0.8rem 0.2rem; font-size: 0.85rem; margin: 0; }
 
-            /* 4. SCANNER BAR (Input and Camera side-by-side) */
-            .scanner-wrapper { flex-direction: row; gap: 8px; }
-            #scanner-input { height: 50px; font-size: 16px; padding: 10px; }
-            .camera-btn { width: auto; height: 50px; padding: 0 16px; flex: none; font-size: 15px; }
+            .scanner-wrapper { flex-direction: row; gap: 0.5rem; }
+            #scanner-input { height: 3.5rem; font-size: 1rem; padding: 0.7rem; }
+            .camera-btn { width: auto; height: 3.5rem; padding: 0 1rem; flex: none; font-size: 0.95rem; }
 
-            /* 5. SUMMARY BUTTONS (2 rows of 2 buttons) */
-            .section:last-child .button-group { flex-direction: row; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-            .section:last-child .button-group button { flex: 1 1 calc(50% - 5px); padding: 12px 4px; font-size: 13px; margin: 0; }
+            .section:last-child .button-group { flex-direction: row; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem; }
+            .section:last-child .button-group button { flex: 1 1 calc(50% - 0.3rem); padding: 0.8rem 0.2rem; font-size: 0.85rem; margin: 0; }
 
-            .modal-content { padding: 16px; margin: auto; }
+            .modal-content { padding: 1rem; margin: auto; }
         }
     </style>
 </head>
@@ -159,50 +278,50 @@
 
 <div id="backup-modal" class="modal-overlay">
     <div class="modal-content" style="max-width:600px;">
-        <h2 style="margin-top:0; font-size: 20px;">💾 Saved Backups</h2>
-        <div id="backup-list" style="overflow-y:auto; flex: 1; border:1px solid #e2e8f0; padding:12px; margin-bottom:16px; border-radius:6px; background: #f7fafc;"></div>
-        <button class="btn-secondary" style="width:100%; flex-shrink: 0;" onclick="document.getElementById('backup-modal').classList.remove('active')">Close</button>
+        <h2 style="margin-top:0; font-size: 1.3rem;">💾 Saved Backups</h2>
+        <div id="backup-list" style="overflow-y:auto; flex: 1; border:1px solid var(--border); padding:0.8rem; margin-bottom:1rem; border-radius:var(--radius-input); background: var(--bg);"></div>
+        <button class="btn-navy" style="width:100%; flex-shrink: 0;" onclick="document.getElementById('backup-modal').classList.remove('active')">Close</button>
     </div>
 </div>
 
 <div id="duplicate-modal" class="modal-overlay">
     <div class="modal-content red-modal">
-        <h2 style="color:var(--danger); margin-top:0; font-size: 24px;">⚠️ DUPLICATE!</h2>
-        <p style="font-size: 18px; margin-bottom: 24px;">Barcode: <br><strong id="duplicate-id-text" style="font-size: 22px; display:inline-block; margin-top:8px; word-break: break-all;"></strong></p>
-        <button class="btn-danger-sm" style="width:100%; height: 50px; font-size: 18px;" onclick="resumeScanning('duplicate-modal')">OK - RESUME</button>
+        <h2 style="color:var(--danger); margin-top:0; font-size: 1.5rem;">⚠️ DUPLICATE!</h2>
+        <p style="font-size: 1.2rem; margin-bottom: 1.5rem;">Barcode: <br><strong id="duplicate-id-text" style="font-size: 1.4rem; display:inline-block; margin-top:0.5rem; word-break: break-all;"></strong></p>
+        <button class="btn-red" style="width:100%; height: 3.5rem; font-size: 1.2rem;" onclick="resumeScanning('duplicate-modal')">OK - RESUME</button>
     </div>
 </div>
 
 <div id="invalid-modal" class="modal-overlay">
     <div class="modal-content yellow-modal">
-        <h2 style="color:#dd6b20; margin-top:0; font-size: 24px;">⚠️ INVALID!</h2>
-        <p style="font-size: 18px; margin-bottom: 24px;">Barcode: <br><strong id="invalid-id-text" style="font-size: 22px; display:inline-block; margin-top:8px; word-break: break-all;"></strong></p>
-        <button class="btn-secondary" style="width:100%; height: 50px; font-size: 18px;" onclick="resumeScanning('invalid-modal')">OK - RESUME</button>
+        <h2 style="color:var(--warning); margin-top:0; font-size: 1.5rem;">⚠️ INVALID!</h2>
+        <p style="font-size: 1.2rem; margin-bottom: 1.5rem;">Barcode: <br><strong id="invalid-id-text" style="font-size: 1.4rem; display:inline-block; margin-top:0.5rem; word-break: break-all;"></strong></p>
+        <button class="btn-navy" style="width:100%; height: 3.5rem; font-size: 1.2rem;" onclick="resumeScanning('invalid-modal')">OK - RESUME</button>
     </div>
 </div>
 
 <div id="archive-options-modal" class="modal-overlay">
     <div class="modal-content blue-modal" style="max-width: 400px; text-align: center;">
-        <h2 style="margin-top:0; font-size: 20px;">📅 Archive: <span id="archive-modal-date"></span></h2>
-        <p style="color: #4a5568; margin-bottom: 20px;">What would you like to download for this date?</p>
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-            <button class="btn-primary" style="width: 100%;" onclick="downloadArchiveScanned()">⬇️ Download Scanned List</button>
-            <button class="btn-primary" style="background: #dd6b20; width: 100%;" onclick="downloadArchiveMissing()">⬇️ Download Missing List</button>
-            <button class="btn-secondary" style="width: 100%; margin-top: 8px;" onclick="document.getElementById('archive-options-modal').classList.remove('active')">Cancel</button>
+        <h2 style="margin-top:0; font-size: 1.3rem;">📅 Archive: <span id="archive-modal-date"></span></h2>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">What would you like to download for this date?</p>
+        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+            <button class="btn" style="width: 100%;" onclick="downloadArchiveScanned()">⬇️ Download Scanned List</button>
+            <button id="archive-missing-btn" class="btn-outline" style="width: 100%; background: var(--warning); color: #000; border: none;" onclick="downloadArchiveMissing()">⬇️ Download Missing List</button>
+            <button class="btn-navy" style="width: 100%; margin-top: 0.5rem;" onclick="document.getElementById('archive-options-modal').classList.remove('active')">Cancel</button>
         </div>
     </div>
 </div>
 
 <div id="missing-modal" class="modal-overlay">
     <div class="modal-content blue-modal">
-        <h2 style="text-align:center; margin-top:0; font-size: 20px;">📋 Missing Parcels (<span id="missing-flow-name"></span>)</h2>
-        <div class="button-group" style="flex-direction: row; justify-content:center; margin-bottom:16px;">
-            <button id="copy-print-btn" class="btn-primary" style="flex:1;" onclick="copyBulkLinks('print')">📋 Copy Print Links</button>
-            <button id="copy-order-btn" class="btn-primary" style="flex:1;" onclick="copyBulkLinks('order')">📋 Copy Order Links</button>
+        <h2 style="text-align:center; margin-top:0; font-size: 1.3rem;">📋 Missing Parcels (<span id="missing-flow-name"></span>)</h2>
+        <div class="button-group" style="flex-direction: row; justify-content:center; margin-bottom:1rem;">
+            <button id="copy-print-btn" class="btn" style="flex:1;" onclick="copyBulkLinks('print')">📋 Copy Print Links</button>
+            <button id="copy-order-btn" class="btn" style="flex:1;" onclick="copyBulkLinks('order')">📋 Copy Order Links</button>
         </div>
-        <div style="flex: 1; overflow-y:auto; background:#fff; border:1px solid #e2e8f0; border-radius:6px; min-height: 200px;" class="responsive-table-wrapper">
+        <div style="flex: 1; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-input); min-height: 200px;" class="responsive-table-wrapper">
             <table id="missing-table">
-                <thead style="position:sticky;top:0;background:#edf2f7;z-index:1;box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <thead style="position:sticky;top:0;background:var(--bg);z-index:1;box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <tr>
                         <th style="width:40px;text-align:center;">✓</th>
                         <th>Date</th>
@@ -215,16 +334,16 @@
                 <tbody id="missing-list-container"></tbody>
             </table>
         </div>
-        <div class="button-group" style="margin-top: 16px; flex-shrink: 0;">
-            <button class="btn-primary" style="flex:1;" onclick="downloadMissingExcel()">⬇️ Download List</button>
-            <button class="btn-secondary" style="flex:1;" onclick="resumeScanning('missing-modal')">Close</button>
+        <div class="button-group" style="margin-top: 1rem; flex-shrink: 0;">
+            <button class="btn" style="flex:1;" onclick="downloadMissingExcel()">⬇️ Download List</button>
+            <button class="btn-navy" style="flex:1;" onclick="resumeScanning('missing-modal')">Close</button>
         </div>
     </div>
 </div>
 
 <div id="camera-modal" class="modal-overlay">
-    <div class="modal-content" style="max-width:600px; padding: 16px;">
-        <button class="btn-danger-sm" style="width:100%; margin-bottom:16px; height: 50px; font-size:16px;" onclick="stopCamera()">✖ Close Camera</button>
+    <div class="modal-content" style="max-width:600px; padding: 1rem;">
+        <button class="btn-red" style="width:100%; margin-bottom:1rem; height: 3.5rem; font-size:1rem;" onclick="stopCamera()">✖ Close Camera</button>
         <div id="reader" style="flex:1;"></div>
     </div>
 </div>
@@ -233,6 +352,19 @@
     <div class="header-bar">
         <h1>☁️ Cloud Scanner Pro</h1>
         <div class="header-right">
+            <div class="system-controls">
+                <select id="theme-selector" onchange="changeTheme(this.value)">
+                    <option value="deepblue">Theme: Deep Blue</option>
+                    <option value="light">Theme: Light</option>
+                    <option value="dark">Theme: Dark</option>
+                    <option value="eyeprotectant">Theme: Eye Protect</option>
+                </select>
+                <select id="font-selector" onchange="changeFont(this.value)">
+                    <option value="small">A- (Small)</option>
+                    <option value="medium" selected>A (Medium)</option>
+                    <option value="large">A+ (Large)</option>
+                </select>
+            </div>
             <div id="cloud-status" class="cloud-status">Connecting…</div>
             <div class="sync-bar">
                 <span id="sync-dot" class="sync-dot"></span>
@@ -245,14 +377,14 @@
     
     <div class="flow-controls">
         <select id="flow-selector" onchange="switchFlow()"></select>
-        <button class="btn-primary" onclick="createNewFlow()">➕ New Company</button>
-        <button class="btn-danger-sm" onclick="deleteCurrentFlow()">🗑️</button>
+        <button class="btn" onclick="createNewFlow()">➕ New Company</button>
+        <button class="btn-red" onclick="deleteCurrentFlow()">🗑️</button>
     </div>
 
-    <div style="margin: 20px 0;">
-        <h4 style="margin: 0 0 12px 0; color: #4a5568; font-size: 14px; font-weight:700; text-transform: uppercase;">⏪ Previous 3 Days Archives:</h4>
-        <div id="history-tabs-container" style="display:flex; gap:12px; overflow-x:auto; padding-bottom: 8px; -webkit-overflow-scrolling:touch;">
-            <span style="color:#718096; font-size: 14px; font-style: italic;">Loading archives...</span>
+    <div style="margin: 1.5rem 0;">
+        <h4 style="margin: 0 0 0.8rem 0; color: var(--text); font-size: 0.9rem; font-weight:700; text-transform: uppercase;">⏪ Previous 3 Days Archives:</h4>
+        <div id="history-tabs-container" style="display:flex; gap:0.8rem; overflow-x:auto; padding-bottom: 0.5rem; -webkit-overflow-scrolling:touch;">
+            <span style="color:var(--text-muted); font-size: 0.9rem; font-style: italic;">Loading archives...</span>
         </div>
     </div>
 
@@ -260,7 +392,7 @@
         <h3>1. Input Expected</h3>
         <div class="filter-box">
             <div class="filter-left">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
                     <input type="checkbox" id="use-date-filter" checked> 
                     <span>Only load parcels on:</span>
                 </label>
@@ -268,16 +400,16 @@
             </div>
             <div class="button-group" style="margin-top:0; width: auto; flex:1; justify-content: flex-end;">
                 <input type="file" id="file-upload" accept=".txt,.csv" style="display:none;" onchange="handleFileUpload(event)">
-                <button class="btn-primary" onclick="document.getElementById('file-upload').click()">📁 Upload .txt / .csv</button>
+                <button class="btn-teal" onclick="document.getElementById('file-upload').click()">📁 Upload .txt / .csv</button>
                 <input type="file" id="reverse-file-upload" accept=".txt,.csv" style="display:none;" onchange="handleReverseFileUpload(event)">
-                <button style="background:var(--danger);" onclick="document.getElementById('reverse-file-upload').click()">📁 Reverse File</button>
+                <button class="btn-red" onclick="document.getElementById('reverse-file-upload').click()">📁 Reverse File</button>
             </div>
         </div>
         <textarea id="expected-ids" rows="4" placeholder="Or paste tracking/order details here..."></textarea>
         <div class="button-group">
-            <button class="btn-primary" onclick="addExpectedIDsFromPaste()">➕ Add Pasted Data</button>
-            <button class="btn-primary" style="background:var(--success);" onclick="saveAndNextDay()">⏭️ Save & Next Day</button>
-            <button class="btn-secondary push-right" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
+            <button class="btn" onclick="addExpectedIDsFromPaste()">➕ Add Pasted Data</button>
+            <button class="btn-success" onclick="saveAndNextDay()">⏭️ Save & Next Day</button>
+            <button class="btn-navy push-right" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
         </div>
     </div>
 
@@ -286,18 +418,18 @@
         <span id="active-flow-label">Target: —</span>
         <div class="scanner-wrapper">
             <input type="text" id="scanner-input" placeholder="Scan barcode..." autofocus autocomplete="off">
-            <button class="btn-primary camera-btn" onclick="startCamera()">📷 Camera</button>
+            <button class="btn-success camera-btn" onclick="startCamera()">📷 Camera</button>
         </div>
         <div id="log" style="display:none;"></div>
     </div>
 
     <div class="section" style="border-bottom:none; padding-bottom: 0;">
         <h3>3. Summary (<span id="scanned-count">0</span> / <span id="total-expected">0</span>)</h3>
-        <div class="button-group" style="margin-bottom:16px;">
-            <button id="backup-btn" onclick="createBackup()">💾 Save Backup Snapshot</button>
-            <button id="view-backup-btn" onclick="showBackups()">📂 View Backups</button>
-            <button id="download-btn" onclick="downloadExcel()" disabled class="push-right">⬇️ Download List</button>
-            <button id="finish-btn" onclick="checkRemaining()">🏁 Finish & Check Missing</button>
+        <div class="button-group" style="margin-bottom:1rem;">
+            <button id="backup-btn" class="btn-outline" style="background:var(--warning); border:none; color:#000;" onclick="createBackup()">💾 Save Backup Snapshot</button>
+            <button id="view-backup-btn" class="btn-navy" onclick="showBackups()">📂 View Backups</button>
+            <button id="download-btn" class="btn-success push-right" onclick="downloadExcel()" disabled>⬇️ Download List</button>
+            <button id="finish-btn" class="btn-teal" onclick="checkRemaining()">🏁 Finish & Check Missing</button>
         </div>
         
         <div class="responsive-table-wrapper">
@@ -323,6 +455,33 @@
 <script type="module">
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// ==========================================
+// DESIGN SYSTEM INITS
+// ==========================================
+function initDesignSystem() {
+    const savedTheme = localStorage.getItem('scannerTheme') || 'deepblue';
+    const savedFont = localStorage.getItem('scannerFont') || 'medium';
+    
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.documentElement.setAttribute('data-font', savedFont);
+    
+    document.getElementById('theme-selector').value = savedTheme;
+    document.getElementById('font-selector').value = savedFont;
+}
+
+window.changeTheme = function(val) {
+    document.documentElement.setAttribute('data-theme', val);
+    localStorage.setItem('scannerTheme', val);
+};
+
+window.changeFont = function(val) {
+    document.documentElement.setAttribute('data-font', val);
+    localStorage.setItem('scannerFont', val);
+};
+
+initDesignSystem();
+// ==========================================
 
 const firebaseConfig = {
     apiKey: "AIzaSyA-xmL30L6UtY3Y5kSCizjUDggM2BxRnmY",
@@ -466,9 +625,11 @@ function attachArchiveListener(flowKey) {
 
                 const btn = document.createElement('button');
                 if (isComplete) {
-                    btn.style.cssText = `background:#d4edda; color:#155724; border-color:#c3e6cb;`;
+                    btn.style.borderColor = "var(--success)";
+                    btn.style.color = "var(--success)";
                 } else {
-                    btn.style.cssText = `background:#fff3cd; color:#856404; border-color:#ffeeba;`;
+                    btn.style.borderColor = "var(--warning)";
+                    btn.style.color = "var(--warning)";
                 }
                 
                 btn.innerText = `📅 ${date} (${scannedCount}/${expectedCount})`;
@@ -476,7 +637,7 @@ function attachArchiveListener(flowKey) {
                 container.appendChild(btn);
             });
         } else {
-            container.innerHTML = '<span style="color:#718096; font-size: 14px; font-style: italic;">No previous days archived yet.</span>';
+            container.innerHTML = '<span style="color:var(--text-muted); font-size: 0.9rem; font-style: italic;">No previous days archived yet.</span>';
         }
     });
 }
@@ -580,8 +741,20 @@ window.startCamera = function() {
     }).catch(err => { alert('Camera error: ' + err); window.stopCamera(); });
 };
 window.stopCamera = function() {
-    if (html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); document.getElementById('camera-modal').classList.remove('active'); }).catch(() => {});
-    else document.getElementById('camera-modal').classList.remove('active');
+    document.getElementById('camera-modal').classList.remove('active');
+    isCameraPaused = false; 
+    if (html5QrCode) {
+        try {
+            html5QrCode.stop().then(() => { 
+                html5QrCode.clear(); 
+            }).catch((err) => { 
+                console.warn("Camera background stop error:", err);
+                html5QrCode.clear(); 
+            });
+        } catch(e) {
+            console.warn("Camera caught error:", e);
+        }
+    }
 };
 
 function saveExpectedData() {
@@ -785,6 +958,29 @@ window.saveAndNextDay = async function() {
 window.showArchiveOptions = function(date) {
     selectedArchiveDate = date;
     document.getElementById('archive-modal-date').innerText = date;
+    
+    let missingCount = 0;
+    if (archiveDataMap[date] && archiveDataMap[date].expected) {
+        const expectedObj = archiveDataMap[date].expected;
+        const scansObj = archiveDataMap[date].scans || {};
+        Object.keys(expectedObj).forEach(tid => {
+            if (!scansObj[tid]) missingCount++;
+        });
+    }
+
+    const missingBtn = document.getElementById('archive-missing-btn');
+    if (missingCount === 0) {
+        missingBtn.innerText = "✅ No Missing Found";
+        missingBtn.disabled = true;
+        missingBtn.style.opacity = "0.6";
+        missingBtn.style.cursor = "not-allowed";
+    } else {
+        missingBtn.innerText = `⬇️ Download Missing List (${missingCount})`;
+        missingBtn.disabled = false;
+        missingBtn.style.opacity = "1";
+        missingBtn.style.cursor = "pointer";
+    }
+
     document.getElementById('archive-options-modal').classList.add('active');
 };
 
@@ -820,7 +1016,6 @@ window.downloadArchiveMissing = function() {
     let csv = 'Expected Date,Missing Tracking ID,Order ID,SKU,Qty,Print Link\n';
     
     Object.keys(expected).forEach(tid => {
-        // If the tracking ID from the expected list is not in the scans object, it's missing
         if (!scans[tid]) { 
             const data = expected[tid];
             const oid = data.oid || '';
@@ -851,13 +1046,13 @@ function updateSummaryUI() {
 
         row.innerHTML = `
             <td>${rec.number}</td>
-            <td><span style="font-size:13px; font-weight:600; color:#4a5568;">${rec.expectedDate || '—'}</span></td>
+            <td><span style="font-size:0.9rem; font-weight:600; color:var(--text-muted);">${rec.expectedDate || '—'}</span></td>
             <td>${rec.orderId || '—'}</td>
-            <td><strong>${rec.id}</strong></td>
-            <td><span style="font-size:13px; color:#4a5568;">${rec.sku || '—'}</span></td>
-            <td style="text-align:center;"><strong>${rec.qty || '—'}</strong></td>
-            <td><span style="font-size:12px; color:#718096;">${rec.time}</span></td>
-            <td><span style="background:#e2e8f0;border-radius:4px;padding:4px 8px;font-size:12px;color:#4a5568;font-weight:600;">${rec.device || '?'}</span></td>`;
+            <td><strong style="color:var(--text);">${rec.id}</strong></td>
+            <td><span style="font-size:0.9rem; color:var(--text-muted);">${rec.sku || '—'}</span></td>
+            <td style="text-align:center;"><strong style="color:var(--text);">${rec.qty || '—'}</strong></td>
+            <td><span style="font-size:0.8rem; color:var(--text-muted);">${rec.time}</span></td>
+            <td><span style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:0.8rem;color:var(--text);font-weight:600;">${rec.device || '?'}</span></td>`;
         tbody.appendChild(row);
     }
 }
@@ -917,18 +1112,18 @@ window.checkRemaining = function() {
                 ${orderId ? `<input type="checkbox" class="missing-checkbox" data-print-link="${printLink}" data-order-link="${orderDetailLink}" onchange="updateBulkCopyButtons()">` : ''}
             </td>
             <td>
-                <span style="font-size:13px; font-weight:600; color:#4a5568;">${expectedDate || '—'}</span>
+                <span style="font-size:0.9rem; font-weight:600; color:var(--text-muted);">${expectedDate || '—'}</span>
             </td>
             <td>
-                ${orderId ? `<a href="${orderDetailLink}" target="_blank" style="color:var(--primary);text-decoration:none;font-weight:700;">${orderId}</a>` : '<span style="color:#a0aec0;font-size:13px;font-style:italic;">Unknown</span>'}
+                ${orderId ? `<a href="${orderDetailLink}" target="_blank" style="color:var(--primary);text-decoration:none;font-weight:700;">${orderId}</a>` : '<span style="color:var(--text-muted);font-size:0.9rem;font-style:italic;">Unknown</span>'}
             </td>
             <td>
-                ${printLink ? `<a href="${printLink}" target="_blank" style="color:var(--primary);text-decoration:none;font-weight:700;">${tid}</a>` : `<strong>${tid}</strong>`}
+                ${printLink ? `<a href="${printLink}" target="_blank" style="color:var(--primary);text-decoration:none;font-weight:700;">${tid}</a>` : `<strong style="color:var(--text);">${tid}</strong>`}
             </td>
-            <td style="font-size:13px; max-width:200px; word-wrap:break-word; color:#4a5568;">
+            <td style="font-size:0.9rem; max-width:200px; word-wrap:break-word; color:var(--text-muted);">
                 ${sku}
             </td>
-            <td style="text-align:center; font-weight:bold; font-size:15px;">
+            <td style="text-align:center; font-weight:bold; font-size:1rem; color:var(--text);">
                 ${qty}
             </td>`;
         container.appendChild(tr);
@@ -978,11 +1173,11 @@ window.createBackup = function() {
 window.showBackups = function() {
     const backups = JSON.parse(localStorage.getItem('scannerBackups') || '[]');
     const list = document.getElementById('backup-list'); list.innerHTML = '';
-    if (!backups.length) list.innerHTML = '<p style="text-align:center;color:#a0aec0;padding:20px;">No backups saved yet.</p>';
+    if (!backups.length) list.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No backups saved yet.</p>';
     else {
         [...backups].reverse().forEach(b => {
-            const div = document.createElement('div'); div.style.cssText = 'border-bottom:1px solid #e2e8f0;padding:16px 0;';
-            div.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px;"><div><strong style="font-size:16px;">${b.time}</strong><br><span style="font-size:14px;color:#4a5568;">Company: <strong>${b.flow}</strong></span><br><span style="color:var(--success);font-weight:bold;font-size:14px;">✓ ${b.scannedCount} items</span></div><button onclick="restoreBackup(${b.id})" style="background:#17a2b8;color:white;border:none;padding:12px;border-radius:6px;cursor:pointer;font-weight:bold;width:100%;font-size:15px;">Restore to Cloud</button></div>`;
+            const div = document.createElement('div'); div.style.cssText = 'border-bottom:1px solid var(--border);padding:1rem 0;';
+            div.innerHTML = `<div style="display:flex;flex-direction:column;gap:0.8rem;"><div><strong style="font-size:1rem;color:var(--text);">${b.time}</strong><br><span style="font-size:0.9rem;color:var(--text-muted);">Company: <strong style="color:var(--text);">${b.flow}</strong></span><br><span style="color:var(--success);font-weight:bold;font-size:0.9rem;">✓ ${b.scannedCount} items</span></div><button onclick="restoreBackup(${b.id})" class="btn-teal" style="width:100%;">Restore to Cloud</button></div>`;
             list.appendChild(div);
         });
     }
@@ -1005,14 +1200,12 @@ window.restoreBackup = async function(backupId) {
 };
 
 function startAutoArchiveCheck() {
-    // Check the date every 60 seconds
     setInterval(async () => {
-        if (!activeFlowKey) return; // Wait until a company flow is fully loaded
+        if (!activeFlowKey) return; 
         
         const actualToday = new Date().toISOString().split('T')[0];
         const floorDate = document.getElementById('target-ship-date').value;
         
-        // If the real-world date has advanced past the scanner's current floor date
         if (actualToday > floorDate) {
             if (expectedMap.size > 0 || scannedList.size > 0) {
                 showLog(`Midnight reached! Auto-archiving data for ${floorDate}...`, 'warning');
@@ -1025,11 +1218,9 @@ function startAutoArchiveCheck() {
 
                 setCloudStatus('Auto-Saving Archive...', 'syncing');
                 
-                // Save to cloud archives using the completed day's date
                 await set(ref(db, `scannerV2/flows/${activeFlowKey}/archives/${floorDate}/expected`), archiveExpected);
                 await set(ref(db, `scannerV2/flows/${activeFlowKey}/archives/${floorDate}/scans`), archiveScans);
 
-                // Clear the live floor
                 await remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
                 await remove(ref(db, `scannerV2/flows/${activeFlowKey}/expected`));
 
@@ -1038,12 +1229,10 @@ function startAutoArchiveCheck() {
                 document.getElementById('expected-ids').value = '';
                 updateSummaryUI();
 
-                // Advance the input date automatically for the new day
                 document.getElementById('target-ship-date').value = actualToday;
                 showLog(`✅ Data auto-archived! Floor reset for ${actualToday}.`, 'success');
                 markSynced();
             } else {
-                // If the floor was empty anyway, just silently update the date field
                 document.getElementById('target-ship-date').value = actualToday;
             }
         }
