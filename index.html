@@ -31,7 +31,7 @@
         html[data-font="medium"] { font-size: 15px; }
         html[data-font="large"] { font-size: 18px; }
 
-        /* THEME 1: DEEP BLUE (DEFAULT) */
+        /* THEME 1: DEEP BLUE (DEFAULT/BASIC) */
         html[data-theme="deepblue"] {
             --bg: #081C24;
             --surface: #0F4C5C;
@@ -43,7 +43,7 @@
             --input-bg: #0b3642;
         }
 
-        /* THEME 2: LIGHT */
+        /* THEME 2: LIGHT/WHITE */
         html[data-theme="light"] {
             --bg: #f4f6f9;
             --surface: #ffffff;
@@ -67,7 +67,7 @@
             --input-bg: #121212;
         }
 
-        /* THEME 4: EYE PROTECTANT */
+        /* THEME 4: EYE PROTECT */
         html[data-theme="eyeprotectant"] {
             --bg: #f4ecd8;
             --surface: #fdf6e3;
@@ -112,10 +112,13 @@
         .header-bar h1 { margin: 0; font-size: 1.8rem; font-weight: 700; color: var(--text); }
 
         .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
-        .system-controls { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem; }
-        .system-controls select { padding: 0.3rem 0.5rem; font-size: 0.85rem; height: auto; min-width: auto; border-radius: 4px; }
+        
+        /* NEW TOP ROW LAYOUT FOR CONTROLS & DEVICE NAME */
+        .top-controls-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; justify-content: flex-end; }
+        .system-controls { display: flex; gap: 0.5rem; align-items: center; }
+        .system-controls select { padding: 0.4rem 0.6rem; font-size: 0.85rem; height: auto; min-width: auto; border-radius: 4px; }
 
-        .cloud-status { font-size: 0.9rem; padding: 0.4rem 1rem; background: var(--surface); color: var(--text); border-radius: 20px; font-weight: bold; border: 1px solid var(--border); transition: background 0.3s; text-align: center; }
+        .cloud-status { font-size: 0.9rem; padding: 0.4rem 1rem; background: var(--surface); color: var(--text); border-radius: 20px; font-weight: bold; border: 1px solid var(--border); transition: background 0.3s; text-align: center; white-space: nowrap; }
         .cloud-status.syncing { border-color: var(--info); color: var(--info); }
         .cloud-status.error   { border-color: var(--danger); color: var(--danger); }
 
@@ -242,8 +245,8 @@
             body { padding: 0.5rem; }
             .container { padding: 1rem; margin: 0 auto; border-radius: var(--radius-card); }
             .header-bar { flex-direction: column; align-items: flex-start; gap: 0.5rem; padding-bottom: 0.8rem; margin-bottom: 0.8rem; }
-            .header-right { width: 100%; align-items: center; flex-direction: row; justify-content: space-between; margin-top: 0.2rem; flex-wrap: wrap; }
-            .system-controls { width: 100%; justify-content: flex-end; margin-bottom: 0.5rem; }
+            .header-right { width: 100%; align-items: flex-start; flex-direction: column; }
+            .top-controls-row { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
             
             .flow-controls { flex-direction: row; flex-wrap: wrap; padding: 0.8rem; gap: 0.5rem; }
             .flow-controls select { width: 100%; margin-bottom: 0.2rem; padding: 0.7rem; font-size: 0.9rem; }
@@ -300,6 +303,7 @@
     </div>
 </div>
 
+<!-- ARCHIVE OPTIONS MODAL -->
 <div id="archive-options-modal" class="modal-overlay">
     <div class="modal-content blue-modal" style="max-width: 400px; text-align: center;">
         <h2 style="margin-top:0; font-size: 1.3rem;">📅 Archive: <span id="archive-modal-date"></span></h2>
@@ -352,20 +356,24 @@
     <div class="header-bar">
         <h1>☁️ Cloud Scanner Pro</h1>
         <div class="header-right">
-            <div class="system-controls">
-                <select id="theme-selector" onchange="changeTheme(this.value)">
-                    <option value="deepblue">Theme: Deep Blue</option>
-                    <option value="light">Theme: Light</option>
-                    <option value="dark">Theme: Dark</option>
-                    <option value="eyeprotectant">Theme: Eye Protect</option>
-                </select>
-                <select id="font-selector" onchange="changeFont(this.value)">
-                    <option value="small">A- (Small)</option>
-                    <option value="medium" selected>A (Medium)</option>
-                    <option value="large">A+ (Large)</option>
-                </select>
+            <!-- DESIGN SYSTEM CONTROLS & DEVICE/CLOUD STATUS (ROW LAYOUT) -->
+            <div class="top-controls-row">
+                <div class="system-controls">
+                    <select id="theme-selector" onchange="changeTheme(this.value)">
+                        <option value="deepblue">Basic</option>
+                        <option value="light">White</option>
+                        <option value="dark">Dark</option>
+                        <option value="eyeprotectant">Eye Protect</option>
+                    </select>
+                    <select id="font-selector" onchange="changeFont(this.value)">
+                        <option value="small">A- (Small)</option>
+                        <option value="medium" selected>A (Medium)</option>
+                        <option value="large">A+ (Large)</option>
+                    </select>
+                </div>
+                <div id="cloud-status" class="cloud-status">Connecting…</div>
             </div>
-            <div id="cloud-status" class="cloud-status">Connecting…</div>
+            
             <div class="sync-bar">
                 <span id="sync-dot" class="sync-dot"></span>
                 <span id="last-sync-text" class="last-sync-text">Waiting to sync...</span>
