@@ -181,6 +181,18 @@
     </div>
 </div>
 
+<div id="archive-options-modal" class="modal-overlay">
+    <div class="modal-content blue-modal" style="max-width: 400px; text-align: center;">
+        <h2 style="margin-top:0; font-size: 20px;">📅 Archive: <span id="archive-modal-date"></span></h2>
+        <p style="color: #4a5568; margin-bottom: 20px;">What would you like to download for this date?</p>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button class="btn-primary" style="width: 100%;" onclick="downloadArchiveScanned()">⬇️ Download Scanned List</button>
+            <button class="btn-primary" style="background: #dd6b20; width: 100%;" onclick="downloadArchiveMissing()">⬇️ Download Missing List</button>
+            <button class="btn-secondary" style="width: 100%; margin-top: 8px;" onclick="document.getElementById('archive-options-modal').classList.remove('active')">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <div id="missing-modal" class="modal-overlay">
     <div class="modal-content blue-modal">
         <h2 style="text-align:center; margin-top:0; font-size: 20px;">📋 Missing Parcels (<span id="missing-flow-name"></span>)</h2>
@@ -338,6 +350,7 @@ let activeArchiveUnsubscribe = null;
 let archiveDataMap = {}; 
 let html5QrCode;
 let isCameraPaused = false;
+let selectedArchiveDate = "";
 
 const DEVICE_ID = (() => {
     let id = sessionStorage.getItem('scannerDeviceId');
@@ -459,7 +472,7 @@ function attachArchiveListener(flowKey) {
                 }
                 
                 btn.innerText = `📅 ${date} (${scannedCount}/${expectedCount})`;
-                btn.onclick = () => loadArchiveToLive(date);
+                btn.onclick = () => showArchiveOptions(date);
                 container.appendChild(btn);
             });
         } else {
@@ -769,29 +782,56 @@ window.saveAndNextDay = async function() {
     markSynced();
 };
 
-window.loadArchiveToLive = async function(date) {
-    if (!archiveDataMap[date]) return;
+window.showArchiveOptions = function(date) {
+    selectedArchiveDate = date;
+    document.getElementById('archive-modal-date').innerText = date;
+    document.getElementById('archive-options-modal').classList.add('active');
+};
 
-    if (expectedMap.size > 0 || scannedList.size > 0) {
-        if (!confirm(`⚠️ WARNING: The live floor has active data. Loading the archive for ${date} will overwrite the current live floor. Proceed?`)) return;
-    } else {
-        if (!confirm(`Load archived data for ${date} back to the live floor?`)) return;
+window.downloadArchiveScanned = function() {
+    const date = selectedArchiveDate;
+    if (!archiveDataMap[date] || !archiveDataMap[date].scans) {
+        alert("No scanned data found for this date.");
+        return;
     }
+    
+    const scans = archiveDataMap[date].scans;
+    let csv = 'Number,Expected Date,Order ID,Tracking ID,SKU,Qty,Time Scanned,Device\n';
+    
+    let number = 1;
+    Object.values(scans).forEach(r => {
+        csv += `"${number++}","${r.expectedDate || ''}","${r.orderId || ''}","${r.id || ''}","${r.sku || ''}","${r.qty || ''}","${r.time || ''}","${r.device || ''}"\n`;
+    });
+    
+    triggerDownload(csv, `Scanned_Log_${sanitizeKey(activeFlowName)}_${date}.csv`);
+    document.getElementById('archive-options-modal').classList.remove('active');
+};
 
-    setCloudStatus('Restoring Archive...', 'syncing');
-
-    const expected = archiveDataMap[date].expected || null;
-    const scans = archiveDataMap[date].scans || null;
-
-    await set(ref(db, `scannerV2/flows/${activeFlowKey}/expected`), expected);
-    await set(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), scans);
-
-    await remove(ref(db, `scannerV2/flows/${activeFlowKey}/archives/${date}`));
-
-    document.getElementById('target-ship-date').value = date;
-
-    showLog(`✅ Archive for ${date} loaded back to live floor!`, 'success');
-    markSynced();
+window.downloadArchiveMissing = function() {
+    const date = selectedArchiveDate;
+    if (!archiveDataMap[date] || !archiveDataMap[date].expected) {
+        alert("No expected data found for this date.");
+        return;
+    }
+    
+    const expected = archiveDataMap[date].expected;
+    const scans = archiveDataMap[date].scans || {};
+    
+    let csv = 'Expected Date,Missing Tracking ID,Order ID,SKU,Qty,Print Link\n';
+    
+    Object.keys(expected).forEach(tid => {
+        // If the tracking ID from the expected list is not in the scans object, it's missing
+        if (!scans[tid]) { 
+            const data = expected[tid];
+            const oid = data.oid || '';
+            const expDate = data.date || '';
+            const link = oid ? `https://sellercentral.amazon.in/easyship/print-documents?orderID=${oid}` : '';
+            csv += `"${expDate}","${tid}","${oid}","${data.sku || ''}","${data.qty || ''}","${link}"\n`;
+        }
+    });
+    
+    triggerDownload(csv, `MISSING_Parcels_${sanitizeKey(activeFlowName)}_${date}.csv`);
+    document.getElementById('archive-options-modal').classList.remove('active');
 };
 
 function updateSummaryUI() {
@@ -964,7 +1004,57 @@ window.restoreBackup = async function(backupId) {
     document.getElementById('backup-modal').classList.remove('active'); showLog('Backup restored!', 'success');
 };
 
-window.onload = function() { setCloudStatus('Connecting…', 'syncing'); listenToFlowList(); };
+function startAutoArchiveCheck() {
+    // Check the date every 60 seconds
+    setInterval(async () => {
+        if (!activeFlowKey) return; // Wait until a company flow is fully loaded
+        
+        const actualToday = new Date().toISOString().split('T')[0];
+        const floorDate = document.getElementById('target-ship-date').value;
+        
+        // If the real-world date has advanced past the scanner's current floor date
+        if (actualToday > floorDate) {
+            if (expectedMap.size > 0 || scannedList.size > 0) {
+                showLog(`Midnight reached! Auto-archiving data for ${floorDate}...`, 'warning');
+                
+                const archiveExpected = {};
+                expectedMap.forEach((data, tid) => { archiveExpected[tid] = data; });
+
+                const archiveScans = {};
+                scanHistory.forEach(rec => { archiveScans[rec.id] = rec; });
+
+                setCloudStatus('Auto-Saving Archive...', 'syncing');
+                
+                // Save to cloud archives using the completed day's date
+                await set(ref(db, `scannerV2/flows/${activeFlowKey}/archives/${floorDate}/expected`), archiveExpected);
+                await set(ref(db, `scannerV2/flows/${activeFlowKey}/archives/${floorDate}/scans`), archiveScans);
+
+                // Clear the live floor
+                await remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
+                await remove(ref(db, `scannerV2/flows/${activeFlowKey}/expected`));
+
+                expectedMap.clear(); scannedList.clear(); scanHistory = [];
+                document.getElementById('total-expected').innerText = '0'; 
+                document.getElementById('expected-ids').value = '';
+                updateSummaryUI();
+
+                // Advance the input date automatically for the new day
+                document.getElementById('target-ship-date').value = actualToday;
+                showLog(`✅ Data auto-archived! Floor reset for ${actualToday}.`, 'success');
+                markSynced();
+            } else {
+                // If the floor was empty anyway, just silently update the date field
+                document.getElementById('target-ship-date').value = actualToday;
+            }
+        }
+    }, 60000); 
+}
+
+window.onload = function() { 
+    setCloudStatus('Connecting…', 'syncing'); 
+    listenToFlowList(); 
+    startAutoArchiveCheck();
+};
 </script>
 </body>
 </html>
