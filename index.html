@@ -303,7 +303,20 @@
     </div>
 </div>
 
-<!-- ARCHIVE OPTIONS MODAL -->
+<div id="restore-scans-modal" class="modal-overlay">
+    <div class="modal-content blue-modal" style="max-width: 450px;">
+        <h2 style="margin-top:0; font-size: 1.3rem;">🔄 Restore Scanned Parcels</h2>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Paste a list of Tracking IDs to instantly mark them as scanned.</p>
+        
+        <textarea id="paste-scans-input" rows="6" placeholder="Paste tracking IDs here (one per line or comma separated)..."></textarea>
+        
+        <div class="button-group">
+            <button class="btn-success" onclick="processRestoredScans()">✅ Process Scans</button>
+            <button class="btn-navy push-right" onclick="document.getElementById('restore-scans-modal').classList.remove('active')">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <div id="archive-options-modal" class="modal-overlay">
     <div class="modal-content blue-modal" style="max-width: 400px; text-align: center;">
         <h2 style="margin-top:0; font-size: 1.3rem;">📅 Archive: <span id="archive-modal-date"></span></h2>
@@ -356,7 +369,6 @@
     <div class="header-bar">
         <h1>☁️ Cloud Scanner Pro</h1>
         <div class="header-right">
-            <!-- DESIGN SYSTEM CONTROLS & DEVICE/CLOUD STATUS (ROW LAYOUT) -->
             <div class="top-controls-row">
                 <div class="system-controls">
                     <select id="theme-selector" onchange="changeTheme(this.value)">
@@ -417,7 +429,7 @@
         <div class="button-group">
             <button class="btn" onclick="addExpectedIDsFromPaste()">➕ Add Pasted Data</button>
             <button class="btn-success" onclick="saveAndNextDay()">⏭️ Save & Next Day</button>
-            <button class="btn-navy push-right" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
+            <button class="btn-outline push-right" style="border: 1px solid var(--info); color: var(--info); background: transparent;" onclick="document.getElementById('restore-scans-modal').classList.add('active')">🔄 Paste Past Scans</button>
         </div>
     </div>
 
@@ -433,10 +445,16 @@
 
     <div class="section" style="border-bottom:none; padding-bottom: 0;">
         <h3>3. Summary (<span id="scanned-count">0</span> / <span id="total-expected">0</span>)</h3>
-        <div class="button-group" style="margin-bottom:1rem;">
-            <button id="backup-btn" class="btn-outline" style="background:var(--warning); border:none; color:#000;" onclick="createBackup()">💾 Save Backup Snapshot</button>
+        
+        <div class="button-group" style="margin-bottom:1rem; align-items: center;">
+            <button id="backup-btn" class="btn-outline" style="background:var(--warning); border:none; color:#000;" onclick="createBackup()">💾 Save Backup</button>
             <button id="view-backup-btn" class="btn-navy" onclick="showBackups()">📂 View Backups</button>
-            <button id="download-btn" class="btn-success push-right" onclick="downloadExcel()" disabled>⬇️ Download List</button>
+            
+            <input type="file" id="restore-file-upload" accept=".csv" style="display:none;" onchange="handleRestoreFileUpload(event)">
+            <button class="btn-outline" style="border: 1px solid var(--info); color: var(--info); background: transparent;" onclick="document.getElementById('restore-file-upload').click()">🔄 Upload Scans CSV</button>
+            
+            <button id="download-btn" class="btn-success" onclick="downloadExcel()" disabled>⬇️ Download List</button>
+            <button class="btn-red push-right" onclick="resetCurrentFlow()">🗑️ Reset Flow</button>
             <button id="finish-btn" class="btn-teal" onclick="checkRemaining()">🏁 Finish & Check Missing</button>
         </div>
         
@@ -462,7 +480,7 @@
 
 <script type="module">
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, push, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // ==========================================
 // DESIGN SYSTEM INITS
@@ -911,22 +929,166 @@ window.addExpectedIDsFromPaste = function() {
     if (!text.trim()) { showLog('Please paste some IDs first.', 'warning'); return; }
     processRawText(text, 'Pasted Data'); document.getElementById('expected-ids').value = '';
 };
+
 window.handleFileUpload = function(event) {
     const f = event.target.files[0]; if (!f) return;
     const r = new FileReader(); r.onload = e => { processRawText(e.target.result, f.name); event.target.value = ''; };
     r.readAsText(f);
 };
+
 window.handleReverseFileUpload = function(event) {
     const f = event.target.files[0]; if (!f) return;
     const r = new FileReader(); r.onload = e => { processReverseRawText(e.target.result, f.name); event.target.value = ''; };
     r.readAsText(f);
 };
+
+window.handleRestoreFileUpload = function(event) {
+    const f = event.target.files[0]; 
+    if (!f) return;
+    
+    const r = new FileReader(); 
+    r.onload = e => { 
+        const text = e.target.result;
+        event.target.value = ''; 
+        
+        const lines = text.split('\n');
+        if (lines.length < 2) {
+            alert("File is empty or invalid.");
+            return;
+        }
+
+        const delimiter = text.substring(0, lines[0].length).includes('\t') ? '\t' : ',';
+
+        const parseLine = (line, delim) => {
+            let res = [], inQ = false, curr = '';
+            for (let i = 0; i < line.length; i++) {
+                let c = line[i];
+                if (c === '"') inQ = !inQ;
+                else if (c === delim && !inQ) { res.push(curr.trim()); curr = ''; }
+                else curr += c;
+            }
+            res.push(curr.trim());
+            return res.map(val => val.replace(/^"|"$/g, '')); 
+        };
+
+        const headers = parseLine(lines[0], delimiter).map(h => h.toLowerCase());
+        
+        const tidIdx = headers.findIndex(h => h.includes('tracking id') || h.includes('tracking-id'));
+        const timeIdx = headers.findIndex(h => h.includes('time scanned'));
+        const deviceIdx = headers.findIndex(h => h.includes('device'));
+
+        if (tidIdx === -1) {
+            alert("Error: Could not detect a 'Tracking ID' column in this file.");
+            return;
+        }
+
+        let successCount = 0;
+        let missingCount = 0;
+
+        lines.slice(1).forEach(line => {
+            if (!line.trim()) return;
+            
+            const cols = parseLine(line, delimiter);
+            const tid = cols[tidIdx];
+            
+            if (!tid) return;
+            if (scannedList.has(tid)) return; 
+            
+            if (!expectedMap.has(tid)) {
+                missingCount++; 
+                return;
+            }
+
+            scannedList.add(tid);
+            const expectedData = expectedMap.get(tid);
+
+            const scanTime = (timeIdx !== -1 && cols[timeIdx]) ? cols[timeIdx] : new Date().toLocaleTimeString() + ' on ' + new Date().toLocaleDateString();
+            const scanDevice = (deviceIdx !== -1 && cols[deviceIdx]) ? cols[deviceIdx] : DEVICE_ID + " (Restored CSV)";
+
+            push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), {
+                id: tid,
+                time: scanTime,
+                orderId: expectedData.oid,
+                expectedDate: expectedData.date,
+                sku: expectedData.sku,
+                qty: expectedData.qty,
+                device: scanDevice
+            });
+            
+            successCount++;
+        });
+
+        let feedback = `✅ Restored ${successCount} historical scans from CSV.`;
+        if (missingCount > 0) feedback += ` (${missingCount} ignored: not in current Expected list)`;
+        
+        showLog(feedback, 'success');
+    };
+    
+    r.readAsText(f);
+};
+
+window.processRestoredScans = function() {
+    const text = document.getElementById('paste-scans-input').value;
+    if (!text.trim()) { 
+        alert('Please paste some Tracking IDs first.'); 
+        return; 
+    }
+
+    const ids = text.split(/[\n,\t]/).map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
+    let successCount = 0;
+    let missingFromExpected = 0;
+
+    ids.forEach(id => {
+        if (scannedList.has(id)) return; 
+        
+        if (!expectedMap.has(id)) {
+            missingFromExpected++;
+            return; 
+        }
+
+        scannedList.add(id);
+        const now = new Date();
+        const expectedData = expectedMap.get(id);
+
+        push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), {
+            id: id,
+            time: now.toLocaleTimeString() + ' on ' + now.toLocaleDateString(),
+            orderId: expectedData.oid,
+            expectedDate: expectedData.date,
+            sku: expectedData.sku,
+            qty: expectedData.qty,
+            device: DEVICE_ID + " (Manual Paste)"
+        });
+        successCount++;
+    });
+
+    document.getElementById('paste-scans-input').value = '';
+    document.getElementById('restore-scans-modal').classList.remove('active');
+
+    let msg = `✅ Restored ${successCount} scans.`;
+    if (missingFromExpected > 0) {
+        msg += ` (${missingFromExpected} ignored: not found in expected list).`;
+    }
+    showLog(msg, 'success');
+};
+
 window.resetCurrentFlow = function() {
     if (!confirm(`⚠️ Clear ALL scanned & expected data for "${activeFlowName}"? Backups are safe.`)) return;
+
+    if (scannedList.size > 0) {
+        showLog('Downloading current scans before clearing...', 'success');
+        downloadExcel();
+    }
+
     expectedMap.clear(); scannedList.clear(); scanHistory = [];
-    remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`)); remove(ref(db, `scannerV2/flows/${activeFlowKey}/expected`));
-    document.getElementById('total-expected').innerText = '0'; document.getElementById('expected-ids').value = '';
-    updateSummaryUI(); showLog(`Data for "${activeFlowName}" cleared from cloud.`, 'warning');
+    remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
+    remove(ref(db, `scannerV2/flows/${activeFlowKey}/expected`));
+    
+    document.getElementById('total-expected').innerText = '0'; 
+    document.getElementById('expected-ids').value = '';
+    
+    updateSummaryUI(); 
+    showLog(`Data for "${activeFlowName}" cleared from cloud.`, 'warning');
 };
 
 window.saveAndNextDay = async function() {
@@ -1152,6 +1314,7 @@ window.downloadExcel = function() {
     });
     triggerDownload(csv, `Scanned_Log_${sanitizeKey(activeFlowName)}.csv`);
 };
+
 window.downloadMissingExcel = function() {
     let csv = 'Expected Date,Missing Tracking ID,Order ID,SKU,Qty,Print Link\n';
     currentMissingIds.forEach(tid => {
@@ -1163,6 +1326,7 @@ window.downloadMissingExcel = function() {
     });
     triggerDownload(csv, `MISSING_Parcels_${sanitizeKey(activeFlowName)}.csv`);
 };
+
 function triggerDownload(content, filename) {
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = filename; a.style.display = 'none';
@@ -1209,40 +1373,49 @@ window.restoreBackup = async function(backupId) {
 
 function startAutoArchiveCheck() {
     setInterval(async () => {
-        if (!activeFlowKey) return; 
+        if (Object.keys(allFlowKeys).length === 0) return; 
         
         const actualToday = new Date().toISOString().split('T')[0];
         const floorDate = document.getElementById('target-ship-date').value;
         
         if (actualToday > floorDate) {
-            if (expectedMap.size > 0 || scannedList.size > 0) {
-                showLog(`Midnight reached! Auto-archiving data for ${floorDate}...`, 'warning');
-                
-                const archiveExpected = {};
-                expectedMap.forEach((data, tid) => { archiveExpected[tid] = data; });
+            showLog(`Midnight reached! Auto-archiving data across ALL companies...`, 'warning');
+            setCloudStatus('Auto-Saving All Archives...', 'syncing');
+            
+            for (const flowKey of Object.keys(allFlowKeys)) {
+                try {
+                    const flowRef = ref(db, `scannerV2/flows/${flowKey}`);
+                    const snapshot = await get(flowRef);
+                    
+                    if (snapshot.exists()) {
+                        const flowData = snapshot.val();
+                        const archiveExpected = flowData.expected || {};
+                        const archiveScans = flowData.scans || {};
+                        
+                        if (Object.keys(archiveExpected).length > 0 || Object.keys(archiveScans).length > 0) {
+                            await set(ref(db, `scannerV2/flows/${flowKey}/archives/${floorDate}/expected`), archiveExpected);
+                            await set(ref(db, `scannerV2/flows/${flowKey}/archives/${floorDate}/scans`), archiveScans);
 
-                const archiveScans = {};
-                scanHistory.forEach(rec => { archiveScans[rec.id] = rec; });
-
-                setCloudStatus('Auto-Saving Archive...', 'syncing');
-                
-                await set(ref(db, `scannerV2/flows/${activeFlowKey}/archives/${floorDate}/expected`), archiveExpected);
-                await set(ref(db, `scannerV2/flows/${activeFlowKey}/archives/${floorDate}/scans`), archiveScans);
-
-                await remove(ref(db, `scannerV2/flows/${activeFlowKey}/scans`));
-                await remove(ref(db, `scannerV2/flows/${activeFlowKey}/expected`));
-
-                expectedMap.clear(); scannedList.clear(); scanHistory = [];
-                document.getElementById('total-expected').innerText = '0'; 
-                document.getElementById('expected-ids').value = '';
-                updateSummaryUI();
-
-                document.getElementById('target-ship-date').value = actualToday;
-                showLog(`✅ Data auto-archived! Floor reset for ${actualToday}.`, 'success');
-                markSynced();
-            } else {
-                document.getElementById('target-ship-date').value = actualToday;
+                            await remove(ref(db, `scannerV2/flows/${flowKey}/scans`));
+                            await remove(ref(db, `scannerV2/flows/${flowKey}/expected`));
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Failed to auto-archive company: ${flowKey}`, error);
+                }
             }
+
+            expectedMap.clear(); 
+            scannedList.clear(); 
+            scanHistory = [];
+            document.getElementById('total-expected').innerText = '0'; 
+            document.getElementById('expected-ids').value = '';
+            
+            document.getElementById('target-ship-date').value = actualToday;
+            
+            updateSummaryUI();
+            showLog(`✅ All companies auto-archived! Floor reset for ${actualToday}.`, 'success');
+            markSynced();
         }
     }, 60000); 
 }
