@@ -303,7 +303,6 @@
     </div>
 </div>
 
-<!-- ARCHIVE OPTIONS MODAL -->
 <div id="archive-options-modal" class="modal-overlay">
     <div class="modal-content blue-modal" style="max-width: 400px; text-align: center;">
         <h2 style="margin-top:0; font-size: 1.3rem;">📅 Archive: <span id="archive-modal-date"></span></h2>
@@ -356,7 +355,6 @@
     <div class="header-bar">
         <h1>☁️ Cloud Scanner Pro</h1>
         <div class="header-right">
-            <!-- DESIGN SYSTEM CONTROLS & DEVICE/CLOUD STATUS (ROW LAYOUT) -->
             <div class="top-controls-row">
                 <div class="system-controls">
                     <select id="theme-selector" onchange="changeTheme(this.value)">
@@ -415,7 +413,6 @@
         </div>
         <textarea id="expected-ids" rows="4" placeholder="Or paste tracking/order details here..."></textarea>
         
-        <!-- REVERTED TO ORIGINAL LAYOUT -->
         <div class="button-group">
             <button class="btn" onclick="addExpectedIDsFromPaste()">➕ Add Pasted Data</button>
             <button class="btn-success" onclick="saveAndNextDay()">⏭️ Save & Next Day</button>
@@ -436,7 +433,6 @@
     <div class="section" style="border-bottom:none; padding-bottom: 0;">
         <h3>3. Summary (<span id="scanned-count">0</span> / <span id="total-expected">0</span>)</h3>
         
-        <!-- REVERTED WITH ONLY CSV UPLOAD ADDED -->
         <div class="button-group" style="margin-bottom:1rem;">
             <button id="backup-btn" class="btn-outline" style="background:var(--warning); border:none; color:#000;" onclick="createBackup()">💾 Save Backup Snapshot</button>
             <button id="view-backup-btn" class="btn-navy" onclick="showBackups()">📂 View Backups</button>
@@ -936,6 +932,13 @@ window.handleRestoreFileUpload = function(event) {
     const f = event.target.files[0]; 
     if (!f) return;
     
+    // 1. ENFORCE ORDER: Check if Expected List is loaded first
+    if (expectedMap.size === 0) {
+        alert("⚠️ Please upload your Order File (Input Expected) first before uploading the Scanned List!");
+        event.target.value = ''; // Reset file input
+        return;
+    }
+    
     const r = new FileReader(); 
     r.onload = e => { 
         const text = e.target.result;
@@ -964,6 +967,7 @@ window.handleRestoreFileUpload = function(event) {
         const headers = parseLine(lines[0], delimiter).map(h => h.toLowerCase());
         
         const tidIdx = headers.findIndex(h => h.includes('tracking id') || h.includes('tracking-id'));
+        const oidIdx = headers.findIndex(h => h.includes('order id') || h.includes('order-id'));
         const timeIdx = headers.findIndex(h => h.includes('time scanned'));
         const deviceIdx = headers.findIndex(h => h.includes('device'));
 
@@ -973,22 +977,28 @@ window.handleRestoreFileUpload = function(event) {
         }
 
         let successCount = 0;
-        let missingCount = 0;
+        let unmatchedScans = []; // Array to hold scans that don't match the order file
 
         lines.slice(1).forEach(line => {
             if (!line.trim()) return;
             
             const cols = parseLine(line, delimiter);
             const tid = cols[tidIdx];
+            const oid = (oidIdx !== -1) ? cols[oidIdx] : 'Unknown';
             
             if (!tid) return;
-            if (scannedList.has(tid)) return; 
             
+            // 2. MATCHING LOGIC: Does this scan exist in the Order File?
             if (!expectedMap.has(tid)) {
-                missingCount++; 
+                // If it doesn't match, push it to our pending/unmatched list
+                unmatchedScans.push({ trackingId: tid, orderId: oid });
                 return;
             }
 
+            // Skip if we've already scanned it in this current session
+            if (scannedList.has(tid)) return; 
+
+            // 3. MOVE TO FLOOR: Match found, push back to active scanner
             scannedList.add(tid);
             const expectedData = expectedMap.get(tid);
 
@@ -1008,13 +1018,26 @@ window.handleRestoreFileUpload = function(event) {
             successCount++;
         });
 
-        let feedback = `✅ Restored ${successCount} historical scans from CSV.`;
-        if (missingCount > 0) feedback += ` (${missingCount} ignored: not in current Expected list)`;
-        
-        showLog(feedback, 'success');
+        // 4. AUTO-DOWNLOAD UNMATCHED EXCEPTION REPORT
+        if (unmatchedScans.length > 0) {
+            alert(`⚠️ Restored ${successCount} scans.\n\n${unmatchedScans.length} scans did NOT match your loaded Order File. An exception list will download immediately.`);
+            downloadUnmatchedCSV(unmatchedScans);
+        } else {
+            showLog(`✅ Successfully restored all ${successCount} scans. Perfect match!`, 'success');
+        }
     };
     
     r.readAsText(f);
+};
+
+window.downloadUnmatchedCSV = function(unmatchedArray) {
+    let csv = 'Tracking ID,Order ID,Issue\n';
+    
+    unmatchedArray.forEach(item => {
+        csv += `"${item.trackingId}","${item.orderId}","Scanned but NOT found in currently loaded Order File"\n`;
+    });
+    
+    triggerDownload(csv, `UNMATCHED_Pending_Scans_${sanitizeKey(activeFlowName)}.csv`);
 };
 
 window.resetCurrentFlow = function() {
