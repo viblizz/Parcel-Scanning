@@ -303,20 +303,7 @@
     </div>
 </div>
 
-<div id="restore-scans-modal" class="modal-overlay">
-    <div class="modal-content blue-modal" style="max-width: 450px;">
-        <h2 style="margin-top:0; font-size: 1.3rem;">🔄 Restore Scanned Parcels</h2>
-        <p style="font-size: 0.9rem; color: var(--text-muted);">Paste a list of Tracking IDs to instantly mark them as scanned.</p>
-        
-        <textarea id="paste-scans-input" rows="6" placeholder="Paste tracking IDs here (one per line or comma separated)..."></textarea>
-        
-        <div class="button-group">
-            <button class="btn-success" onclick="processRestoredScans()">✅ Process Scans</button>
-            <button class="btn-navy push-right" onclick="document.getElementById('restore-scans-modal').classList.remove('active')">Cancel</button>
-        </div>
-    </div>
-</div>
-
+<!-- ARCHIVE OPTIONS MODAL -->
 <div id="archive-options-modal" class="modal-overlay">
     <div class="modal-content blue-modal" style="max-width: 400px; text-align: center;">
         <h2 style="margin-top:0; font-size: 1.3rem;">📅 Archive: <span id="archive-modal-date"></span></h2>
@@ -369,6 +356,7 @@
     <div class="header-bar">
         <h1>☁️ Cloud Scanner Pro</h1>
         <div class="header-right">
+            <!-- DESIGN SYSTEM CONTROLS & DEVICE/CLOUD STATUS (ROW LAYOUT) -->
             <div class="top-controls-row">
                 <div class="system-controls">
                     <select id="theme-selector" onchange="changeTheme(this.value)">
@@ -426,10 +414,12 @@
             </div>
         </div>
         <textarea id="expected-ids" rows="4" placeholder="Or paste tracking/order details here..."></textarea>
+        
+        <!-- REVERTED TO ORIGINAL LAYOUT -->
         <div class="button-group">
             <button class="btn" onclick="addExpectedIDsFromPaste()">➕ Add Pasted Data</button>
             <button class="btn-success" onclick="saveAndNextDay()">⏭️ Save & Next Day</button>
-            <button class="btn-outline push-right" style="border: 1px solid var(--info); color: var(--info); background: transparent;" onclick="document.getElementById('restore-scans-modal').classList.add('active')">🔄 Paste Past Scans</button>
+            <button class="btn-navy push-right" onclick="resetCurrentFlow()">🗑️ Clear Current Flow</button>
         </div>
     </div>
 
@@ -446,15 +436,15 @@
     <div class="section" style="border-bottom:none; padding-bottom: 0;">
         <h3>3. Summary (<span id="scanned-count">0</span> / <span id="total-expected">0</span>)</h3>
         
-        <div class="button-group" style="margin-bottom:1rem; align-items: center;">
-            <button id="backup-btn" class="btn-outline" style="background:var(--warning); border:none; color:#000;" onclick="createBackup()">💾 Save Backup</button>
+        <!-- REVERTED WITH ONLY CSV UPLOAD ADDED -->
+        <div class="button-group" style="margin-bottom:1rem;">
+            <button id="backup-btn" class="btn-outline" style="background:var(--warning); border:none; color:#000;" onclick="createBackup()">💾 Save Backup Snapshot</button>
             <button id="view-backup-btn" class="btn-navy" onclick="showBackups()">📂 View Backups</button>
             
             <input type="file" id="restore-file-upload" accept=".csv" style="display:none;" onchange="handleRestoreFileUpload(event)">
-            <button class="btn-outline" style="border: 1px solid var(--info); color: var(--info); background: transparent;" onclick="document.getElementById('restore-file-upload').click()">🔄 Upload Scans CSV</button>
+            <button class="btn-outline push-right" style="border: 1px solid var(--info); color: var(--info); background: transparent;" onclick="document.getElementById('restore-file-upload').click()">🔄 Upload Scans CSV</button>
             
             <button id="download-btn" class="btn-success" onclick="downloadExcel()" disabled>⬇️ Download List</button>
-            <button class="btn-red push-right" onclick="resetCurrentFlow()">🗑️ Reset Flow</button>
             <button id="finish-btn" class="btn-teal" onclick="checkRemaining()">🏁 Finish & Check Missing</button>
         </div>
         
@@ -1025,51 +1015,6 @@ window.handleRestoreFileUpload = function(event) {
     };
     
     r.readAsText(f);
-};
-
-window.processRestoredScans = function() {
-    const text = document.getElementById('paste-scans-input').value;
-    if (!text.trim()) { 
-        alert('Please paste some Tracking IDs first.'); 
-        return; 
-    }
-
-    const ids = text.split(/[\n,\t]/).map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
-    let successCount = 0;
-    let missingFromExpected = 0;
-
-    ids.forEach(id => {
-        if (scannedList.has(id)) return; 
-        
-        if (!expectedMap.has(id)) {
-            missingFromExpected++;
-            return; 
-        }
-
-        scannedList.add(id);
-        const now = new Date();
-        const expectedData = expectedMap.get(id);
-
-        push(ref(db, `scannerV2/flows/${activeFlowKey}/scans`), {
-            id: id,
-            time: now.toLocaleTimeString() + ' on ' + now.toLocaleDateString(),
-            orderId: expectedData.oid,
-            expectedDate: expectedData.date,
-            sku: expectedData.sku,
-            qty: expectedData.qty,
-            device: DEVICE_ID + " (Manual Paste)"
-        });
-        successCount++;
-    });
-
-    document.getElementById('paste-scans-input').value = '';
-    document.getElementById('restore-scans-modal').classList.remove('active');
-
-    let msg = `✅ Restored ${successCount} scans.`;
-    if (missingFromExpected > 0) {
-        msg += ` (${missingFromExpected} ignored: not found in expected list).`;
-    }
-    showLog(msg, 'success');
 };
 
 window.resetCurrentFlow = function() {
